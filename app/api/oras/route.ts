@@ -165,7 +165,11 @@ export async function GET(request: NextRequest) {
             const altData: OpenSeaV2Response = await altResponse.json()
             if (altData.nfts && altData.nfts.length > 0) {
               console.log(`✅ DEBUG: Found ${altData.nfts.length} NFTs with collection: ${altCollection}`)
-              return await processNFTs(altData.nfts, resolvedFromENS ? walletInput : wallet)
+              return await processNFTs(
+                altData.nfts,
+                resolvedFromENS ? walletInput : wallet,
+                resolvedFromENS ? wallet : undefined,
+              )
             }
           }
         } catch (altError) {
@@ -185,12 +189,14 @@ export async function GET(request: NextRequest) {
       console.log(`⚠️ DEBUG: No NFTs found in response`)
       return NextResponse.json({
         oras: [],
-        resolvedAddress: resolvedFromENS ? wallet : null,
-        originalInput: resolvedFromENS ? walletInput : null,
+        ...(resolvedFromENS && {
+          resolvedFrom: walletInput,
+          resolvedAddress: wallet,
+        }),
       })
     }
 
-    return await processNFTs(data.nfts, resolvedFromENS ? walletInput : wallet)
+    return await processNFTs(data.nfts, resolvedFromENS ? walletInput : wallet, resolvedFromENS ? wallet : undefined)
   } catch (error) {
     console.error("❌ DEBUG: Fatal error:", error)
 
@@ -204,7 +210,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function processNFTs(nfts: OpenSeaV2NFT[], originalInput: string): Promise<NextResponse> {
+async function processNFTs(
+  nfts: OpenSeaV2NFT[],
+  originalInput: string,
+  resolvedWallet?: string,
+): Promise<NextResponse> {
   console.log(`🔍 DEBUG: Processing ${nfts.length} NFTs for metadata`)
 
   // Process each NFT
@@ -303,9 +313,10 @@ async function processNFTs(nfts: OpenSeaV2NFT[], originalInput: string): Promise
 
   return NextResponse.json({
     oras: validOras,
-    ...(isENS && {
-      resolvedFrom: originalInput,
-      resolvedAddress: nfts[0]?.contract, // We can infer the wallet from the response
-    }),
+    ...(isENS &&
+      resolvedWallet && {
+        resolvedFrom: originalInput,
+        resolvedAddress: resolvedWallet,
+      }),
   })
 }
