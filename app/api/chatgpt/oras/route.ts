@@ -156,19 +156,6 @@ export async function GET(request: NextRequest) {
 
   console.log(`🔍 ChatGPT API: Fetching Sugartown Oras for wallet: ${wallet}${ensName ? ` (${ensName})` : ""}`)
 
-  // Check if OpenSea API key is available
-  if (!process.env.OPENSEA_API_KEY) {
-    console.log(`⚠️ ChatGPT API: OpenSea API key not found in environment variables`)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "OpenSea API configuration missing",
-        message: "The OpenSea API key is required but not configured. Please contact the administrator.",
-      } as ChatGPTResponse,
-      { status: 503, headers: corsHeaders },
-    )
-  }
-
   try {
     // OpenSea v2 API
     const collectionName = "sugartown-oras"
@@ -177,7 +164,11 @@ export async function GET(request: NextRequest) {
     const headers: Record<string, string> = {
       accept: "application/json",
       "user-agent": "Mozilla/5.0 (compatible; ChatGPT-API/1.0)",
-      "x-api-key": process.env.OPENSEA_API_KEY,
+    }
+
+    // Add API key if available
+    if (process.env.OPENSEA_API_KEY) {
+      headers["x-api-key"] = process.env.OPENSEA_API_KEY
     }
 
     const response = await fetch(openseaUrl, {
@@ -187,17 +178,6 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       console.log(`❌ ChatGPT API: OpenSea request failed: ${response.status}`)
-
-      if (response.status === 401) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "OpenSea API authentication failed",
-            message: "The OpenSea API key is invalid or expired. Please contact the administrator.",
-          } as ChatGPTResponse,
-          { status: 503, headers: corsHeaders },
-        )
-      }
 
       // Try alternative collection names
       const alternativeCollections = ["sugartow-noras", "sugartown-ora", "sugartownoras"]

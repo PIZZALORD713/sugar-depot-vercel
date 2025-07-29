@@ -114,23 +114,6 @@ export async function GET(request: NextRequest) {
     `🔍 DEBUG: Searching for Sugartown Oras in wallet: ${wallet}${resolvedFromENS ? ` (resolved from ${walletInput})` : ""}`,
   )
 
-  // Check if OpenSea API key is available
-  if (!process.env.OPENSEA_API_KEY) {
-    console.log(`⚠️ DEBUG: OpenSea API key not found in environment variables`)
-    return NextResponse.json(
-      {
-        error: "OpenSea API configuration missing",
-        details: "The OpenSea API key is required but not configured. Please contact the administrator.",
-        oras: [],
-        ...(resolvedFromENS && {
-          resolvedFrom: walletInput,
-          resolvedAddress: wallet,
-        }),
-      },
-      { status: 503 },
-    )
-  }
-
   try {
     // OpenSea v2 API has a maximum limit of 100 NFTs per request
     const collectionName = "sugartown-oras" // Correct collection name
@@ -139,7 +122,11 @@ export async function GET(request: NextRequest) {
     const headers: Record<string, string> = {
       accept: "application/json",
       "user-agent": "Mozilla/5.0 (compatible; NFT-Dashboard/1.0)",
-      "x-api-key": process.env.OPENSEA_API_KEY,
+    }
+
+    // Add API key if available
+    if (process.env.OPENSEA_API_KEY) {
+      headers["x-api-key"] = process.env.OPENSEA_API_KEY
     }
 
     console.log(`🔍 DEBUG: Fetching from OpenSea v2 API`)
@@ -157,33 +144,8 @@ export async function GET(request: NextRequest) {
       console.log(`❌ DEBUG: API request failed`)
       console.log(`🔍 DEBUG: Response body:`, responseText)
 
-      if (response.status === 401) {
-        return NextResponse.json(
-          {
-            error: "OpenSea API authentication failed",
-            details: "The OpenSea API key is invalid or expired. Please contact the administrator.",
-            oras: [],
-            ...(resolvedFromENS && {
-              resolvedFrom: walletInput,
-              resolvedAddress: wallet,
-            }),
-          },
-          { status: 503 },
-        )
-      }
-
       if (response.status === 429) {
-        return NextResponse.json(
-          {
-            error: "Rate limit exceeded. Please try again later.",
-            oras: [],
-            ...(resolvedFromENS && {
-              resolvedFrom: walletInput,
-              resolvedAddress: wallet,
-            }),
-          },
-          { status: 429 },
-        )
+        return NextResponse.json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 })
       }
 
       // Try alternative collection names if the primary one fails
@@ -241,13 +203,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: error instanceof Error ? `Failed to fetch Ora data: ${error.message}` : "Failed to fetch Ora data",
-        details:
-          "Please check the wallet address and try again. If the problem persists, the OpenSea API may be experiencing issues.",
-        oras: [],
-        ...(resolvedFromENS && {
-          resolvedFrom: walletInput,
-          resolvedAddress: wallet,
-        }),
+        details: "Please check the wallet address and try again. Check server logs for more information.",
       },
       { status: 500 },
     )

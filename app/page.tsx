@@ -7,26 +7,13 @@ import { useAccount } from "wagmi"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  Loader2,
-  Wallet,
-  Search,
-  Globe,
-  Filter,
-  Sparkles,
-  Zap,
-  Brain,
-  Palette,
-  BookOpen,
-  AlertTriangle,
-} from "lucide-react"
+import { Loader2, Wallet, Search, Globe, Filter, Sparkles, Zap, Brain, Palette, BookOpen } from "lucide-react"
 import { FilterPanel } from "@/components/filter-panel"
 import { FilterChips } from "@/components/filter-chips"
 import { OraCardCollectible } from "@/components/ora-card-collectible"
 import { WalletConnect } from "@/components/wallet-connect"
 import { useFilterStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Ora {
   name: string
@@ -41,7 +28,6 @@ interface ApiResponse {
   resolvedFrom?: string
   resolvedAddress?: string
   error?: string
-  details?: string
 }
 
 export default function OraDashboard() {
@@ -49,7 +35,6 @@ export default function OraDashboard() {
   const [oras, setOras] = useState<Ora[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [apiError, setApiError] = useState<{ message: string; details?: string } | null>(null)
   const [resolvedInfo, setResolvedInfo] = useState<{ from: string; address: string } | null>(null)
   const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const [autoFetched, setAutoFetched] = useState(false)
@@ -88,25 +73,12 @@ export default function OraDashboard() {
   const fetchOrasForAddress = async (targetAddress: string) => {
     setLoading(true)
     setError("")
-    setApiError(null)
 
     try {
       const res = await fetch(`/api/oras?wallet=${encodeURIComponent(targetAddress)}`)
       const data: ApiResponse = await res.json()
 
       if (!res.ok) {
-        // Handle API configuration errors differently
-        if (res.status === 503) {
-          setApiError({
-            message: data.error || "Service temporarily unavailable",
-            details: data.details,
-          })
-          // Still show any existing oras data if available
-          const orasData = data.oras || []
-          setOras(orasData)
-          return
-        }
-
         throw new Error(data.error || "Failed to fetch Oras")
       }
 
@@ -130,7 +102,7 @@ export default function OraDashboard() {
         })
       }
 
-      if (orasData.length === 0 && !apiError) {
+      if (orasData.length === 0) {
         const inputType = isENSName(targetAddress) ? "ENS name" : "wallet"
         setError(
           `No Sugartown Oras found for this ${inputType}. The ${inputType} may not contain any Oras from the Sugartown collection.`,
@@ -319,18 +291,7 @@ export default function OraDashboard() {
                   </div>
                 )}
 
-                {/* API Configuration Error */}
-                {apiError && (
-                  <Alert className="mt-4 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
-                    <AlertDescription className="text-orange-800">
-                      <div className="font-medium">{apiError.message}</div>
-                      {apiError.details && <div className="text-sm mt-1 text-orange-700">{apiError.details}</div>}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {error && !apiError && (
+                {error && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl">
                     <p className="text-red-600 text-sm text-center">{error}</p>
                   </div>
@@ -411,7 +372,7 @@ export default function OraDashboard() {
         )}
 
         {/* Empty State - No Oras found */}
-        {!loading && oras.length === 0 && walletInput && !error && !apiError && (
+        {!loading && oras.length === 0 && walletInput && !error && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
               <Search className="w-12 h-12 text-gray-400" />
@@ -425,7 +386,7 @@ export default function OraDashboard() {
         )}
 
         {/* Initial State */}
-        {!loading && oras.length === 0 && !walletInput && !error && !apiError && (
+        {!loading && oras.length === 0 && !walletInput && !error && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center shadow-lg">
               <Globe className="w-12 h-12 text-blue-500" />
