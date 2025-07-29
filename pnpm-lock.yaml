@@ -168,7 +168,7 @@ importers:
         specifier: latest
         version: 1.1.2(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       viem:
-        specifier: ^2.0.0
+        specifier: 2.9.20
         version: 2.9.20(bufferutil@4.0.9)(typescript@5.0.2)(utf-8-validate@5.0.10)(zod@3.24.1)
       wagmi:
         specifier: latest
@@ -4505,7 +4505,7 @@ snapshots:
   '@safe-global/safe-apps-sdk@9.1.0(bufferutil@4.0.9)(typescript@5.0.2)(utf-8-validate@5.0.10)(zod@3.24.1)':
     dependencies:
       '@safe-global/safe-gateway-typescript-sdk': 3.23.1
-      viem: 2.33.1(bufferutil@4.0.9)(typescript@5.0.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+      viem: 2.9.20(bufferutil@4.0.9)(typescript@5.0.2)(utf-8-validate@5.0.10)(zod@3.24.1)
     transitivePeerDependencies:
       - bufferutil
       - typescript
