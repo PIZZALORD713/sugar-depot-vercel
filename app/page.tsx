@@ -1,257 +1,483 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useAccount } from "wagmi"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Loader2, Wallet, Search, Globe, Filter, Sparkles, Zap, Brain, Palette, BookOpen } from "lucide-react"
 import { FilterPanel } from "@/components/filter-panel"
 import { FilterChips } from "@/components/filter-chips"
-import { OraCard } from "@/components/ora-card"
-import { OraCardV2 } from "@/components/ora-card-v2"
 import { OraCardCollectible } from "@/components/ora-card-collectible"
-import { OraCardCollectibleUpdated } from "@/components/ora-card-collectible-updated"
 import { WalletConnect } from "@/components/wallet-connect"
-import { Search, Grid, List, Filter } from "lucide-react"
+import { useFilterStore } from "@/lib/store"
+import { Badge } from "@/components/ui/badge"
 
 interface Ora {
-  id: string
   name: string
+  oraNumber: string
   image: string
-  rarity: string
   traits: Record<string, string>
-  owner?: string
-  price?: number
-  lastSale?: number
+  openseaUrl: string
 }
 
-export default function Dashboard() {
+interface ApiResponse {
+  oras?: Ora[]
+  resolvedFrom?: string
+  resolvedAddress?: string
+  error?: string
+}
+
+export default function OraDashboard() {
+  const [walletInput, setWalletInput] = useState("0x28af3356c6aaf449d20c59d2531941ddfb94d713")
   const [oras, setOras] = useState<Ora[]>([])
-  const [filteredOras, setFilteredOras] = useState<Ora[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [resolvedInfo, setResolvedInfo] = useState<{ from: string; address: string } | null>(null)
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
+  const [autoFetched, setAutoFetched] = useState(false)
 
+  // Wagmi hooks
+  const { address, isConnected } = useAccount()
+
+  // Get filtered oras from store
+  const { getFilteredOras, favorites } = useFilterStore()
+  const filteredOras = getFilteredOras(oras)
+
+  // Auto-fetch when wallet connects
   useEffect(() => {
-    fetchOras()
-  }, [])
+    if (isConnected && address && !autoFetched) {
+      console.log("🔗 Wallet connected, auto-fetching Oras for:", address)
+      setWalletInput(address)
+      fetchOrasForAddress(address)
+      setAutoFetched(true)
+    }
+  }, [isConnected, address, autoFetched])
 
+  // Reset auto-fetch flag when wallet disconnects
   useEffect(() => {
-    filterOras()
-  }, [oras, searchTerm, filters])
+    if (!isConnected) {
+      setAutoFetched(false)
+      setResolvedInfo(null)
+    }
+  }, [isConnected])
 
-  const fetchOras = async () => {
+  const isENSName = (input: string) => {
+    return (
+      input.endsWith(".eth") || input.endsWith(".xyz") || input.endsWith(".com") || !/^0x[a-fA-F0-9]{40}$/.test(input)
+    )
+  }
+
+  const fetchOrasForAddress = async (targetAddress: string) => {
+    setLoading(true)
+    setError("")
+
     try {
-      setLoading(true)
-      const response = await fetch("/api/oras")
-      const data = await response.json()
-      setOras(data)
-    } catch (error) {
-      console.error("Error fetching oras:", error)
+      const res = await fetch(`/api/oras?wallet=${encodeURIComponent(targetAddress)}`)
+      const data: ApiResponse = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch Oras")
+      }
+
+      console.log("✅ CLIENT DEBUG: Successfully fetched Oras:", data)
+
+      // Handle both old format (direct array) and new format (object with oras property)
+      const orasData = Array.isArray(data) ? data : data.oras || []
+      setOras(orasData)
+
+      // Set resolved ENS info if available
+      if (data.resolvedFrom && data.resolvedAddress) {
+        setResolvedInfo({
+          from: data.resolvedFrom,
+          address: data.resolvedAddress,
+        })
+      } else if (isConnected && address === targetAddress) {
+        // If this was auto-fetched from connected wallet, show that info
+        setResolvedInfo({
+          from: "Connected Wallet",
+          address: targetAddress,
+        })
+      }
+
+      if (orasData.length === 0) {
+        const inputType = isENSName(targetAddress) ? "ENS name" : "wallet"
+        setError(
+          `No Sugartown Oras found for this ${inputType}. The ${inputType} may not contain any Oras from the Sugartown collection.`,
+        )
+      }
+    } catch (err) {
+      console.error("❌ CLIENT DEBUG: Fetch error:", err)
+      setError(err instanceof Error ? err.message : "An error occurred while fetching data")
+      setOras([])
     } finally {
       setLoading(false)
     }
   }
 
-  const filterOras = () => {
-    let filtered = oras
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (ora) =>
-          ora.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ora.id.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+  const fetchOras = async () => {
+    if (!walletInput.trim()) {
+      setError("Please enter a wallet address or ENS name")
+      return
     }
 
-    // Trait filters
-    Object.entries(filters).forEach(([trait, values]) => {
-      if (values.length > 0) {
-        filtered = filtered.filter((ora) => values.includes(ora.traits[trait]))
-      }
-    })
-
-    setFilteredOras(filtered)
+    await fetchOrasForAddress(walletInput.trim())
   }
 
-  const handleFilterChange = (newFilters: Record<string, string[]>) => {
-    setFilters(newFilters)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      fetchOras()
+    }
   }
 
-  const clearFilters = () => {
-    setFilters({})
-    setSearchTerm("")
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWalletInput(e.target.value)
+    // Clear resolved info when input changes
+    if (resolvedInfo) {
+      setResolvedInfo(null)
+    }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading Oras...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  const handleUseConnectedWallet = () => {
+    if (address) {
+      setWalletInput(address)
+      fetchOrasForAddress(address)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sugartown Ora Dashboard</h1>
-            <p className="text-muted-foreground">Explore and manage your Sugartown Ora NFT collection</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      {/* Top Navigation Bar */}
+      <div className="w-full bg-white/80 backdrop-blur-lg border-b border-white/30 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative">
+              <div className="p-2.5 bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                <div className="w-7 h-7 bg-white rounded-xl flex items-center justify-center">
+                  <span className="text-lg font-black bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+                    O
+                  </span>
+                </div>
+              </div>
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent leading-none">
+                OraKit
+              </h1>
+              <div className="text-xs font-mono text-gray-500 tracking-wider uppercase leading-none mt-0.5">
+                CMP-Powered AI Toolkit
+              </div>
+            </div>
           </div>
+
+          {/* Right Side - Wallet Connect */}
           <WalletConnect />
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Oras</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{oras.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Filtered Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{filteredOras.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Floor Price</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0.5 ETH</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Volume (24h)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12.3 ETH</div>
-            </CardContent>
-          </Card>
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Hero Section - Centered */}
+        <div className="text-center py-16">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
+              Collect. Customize. Connect.
+              <br />
+              <span className="text-3xl">Your Oras, Your Personalities</span>
+            </h2>
+            <p className="text-xl text-gray-700 mb-4 font-medium">
+              Transform your Sugartown Oras into unique AI personalities with CMP
+            </p>
+            <p className="text-sm text-gray-500 font-mono mb-12">
+              Supports wallet addresses (0x...) and ENS names (.eth, .xyz, .com)
+            </p>
+
+            {/* Search Section - Centered */}
+            <Card className="shadow-xl border-0 bg-white/70 backdrop-blur-lg rounded-2xl overflow-hidden max-w-3xl mx-auto">
+              <CardContent className="p-8">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    {isENSName(walletInput) ? (
+                      <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    ) : (
+                      <Wallet className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    )}
+                    <Input
+                      placeholder="Enter wallet address (0x...) or ENS name (vitalik.eth)"
+                      value={walletInput}
+                      onChange={handleInputChange}
+                      onKeyPress={handleKeyPress}
+                      className="pl-12 h-16 border-white/30 bg-white/50 focus:bg-white/80 focus:border-blue-300 focus:ring-blue-200 rounded-xl text-lg transition-all duration-200"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    {/* Use Connected Wallet Button */}
+                    {isConnected && address && address !== walletInput && (
+                      <Button
+                        onClick={handleUseConnectedWallet}
+                        variant="outline"
+                        className="h-16 px-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:from-green-100 hover:to-emerald-100 text-green-700 font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                        title="Use connected wallet address"
+                      >
+                        <Zap className="w-5 h-5" />
+                      </Button>
+                    )}
+
+                    <Button
+                      onClick={fetchOras}
+                      disabled={loading || !walletInput.trim()}
+                      className="h-16 px-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                          {isENSName(walletInput) ? "Resolving..." : "Fetching..."}
+                        </>
+                      ) : (
+                        <>
+                          <Search className="mr-3 h-5 w-5" />
+                          Discover Oras
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Status Messages - Centered */}
+                {isConnected && address && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <p className="text-green-700 text-sm text-center">
+                        <strong>Connected:</strong>{" "}
+                        <code className="bg-green-100 px-2 py-1 rounded-lg text-xs font-mono">
+                          {address.slice(0, 6)}...{address.slice(-4)}
+                        </code>
+                        {address !== walletInput && (
+                          <Button
+                            onClick={handleUseConnectedWallet}
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-100"
+                          >
+                            Use this wallet
+                          </Button>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {resolvedInfo && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-center gap-3">
+                      {resolvedInfo.from === "Connected Wallet" ? (
+                        <Zap className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <Globe className="h-5 w-5 text-blue-600" />
+                      )}
+                      <p className="text-blue-700 text-sm text-center">
+                        <strong>{resolvedInfo.from}</strong>{" "}
+                        {resolvedInfo.from !== "Connected Wallet" && "resolved to "}
+                        <code className="bg-blue-100 px-2 py-1 rounded-lg text-xs font-mono">
+                          {resolvedInfo.address}
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl">
+                    <p className="text-red-600 text-sm text-center">{error}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Search and Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search by name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        {/* Results Header - Full width but contained */}
+        {oras.length > 0 && (
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8 pb-6 border-b border-white/30">
+            <div className="text-center lg:text-left">
+              <h3 className="text-4xl font-black bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-3">
+                Your Character Collection
+              </h3>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                <div className="text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30 font-mono">
+                  {oras.length} Characters • {filteredOras.length} shown • {favorites.size} ⭐
+                </div>
+                <div className="px-3 py-1.5 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-700 rounded-xl text-xs font-semibold border border-pink-200">
+                  CMP READY
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-end">
+              <Button
+                onClick={() => setFilterPanelOpen(true)}
+                variant="outline"
+                className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Filter className="w-5 h-5 mr-2" />
+                Filters
+              </Button>
+              <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Bulk Edit CMP
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant={showFilters ? "default" : "outline"} onClick={() => setShowFilters(!showFilters)}>
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <Button variant={viewMode === "grid" ? "default" : "outline"} onClick={() => setViewMode("grid")}>
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button variant={viewMode === "list" ? "default" : "outline"} onClick={() => setViewMode("list")}>
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Filter Chips */}
-        <FilterChips filters={filters} onClearFilter={clearFilters} />
+        <FilterChips />
 
-        <div className="flex gap-6">
-          {/* Filter Panel */}
-          {showFilters && (
-            <div className="w-80 flex-shrink-0">
-              <FilterPanel oras={oras} filters={filters} onFilterChange={handleFilterChange} />
+        {/* Filter Panel */}
+        <FilterPanel oras={oras} isOpen={filterPanelOpen} onClose={() => setFilterPanelOpen(false)} />
+
+        {/* Ora Grid - Character Collection */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-16">
+          {filteredOras.map((ora) => (
+            <OraCardCollectible
+              key={`${ora.name}-${ora.oraNumber}`}
+              ora={ora}
+              initialCMPData={undefined} // This would come from your backend/storage in a real app
+            />
+          ))}
+        </div>
+
+        {/* Empty State - No results after filtering */}
+        {!loading && oras.length > 0 && filteredOras.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
+              <Filter className="w-12 h-12 text-gray-400" />
             </div>
-          )}
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">No Matching Characters</h3>
+            <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+              Try adjusting your filters to find more characters in your collection.
+            </p>
+            <Button
+              onClick={() => setFilterPanelOpen(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              Adjust Filters
+            </Button>
+          </div>
+        )}
 
-          {/* Main Content */}
-          <div className="flex-1">
-            <Tabs defaultValue="gallery" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="gallery">Gallery</TabsTrigger>
-                <TabsTrigger value="v2">V2 Cards</TabsTrigger>
-                <TabsTrigger value="collectible">Collectible</TabsTrigger>
-                <TabsTrigger value="updated">Updated</TabsTrigger>
-              </TabsList>
+        {/* Empty State - No Oras found */}
+        {!loading && oras.length === 0 && walletInput && !error && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
+              <Search className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">No Characters Found</h3>
+            <p className="text-gray-600 text-lg max-w-md mx-auto">
+              This {isENSName(walletInput) ? "ENS name" : "wallet"} doesn't contain any Sugartown Oras to transform into
+              characters.
+            </p>
+          </div>
+        )}
 
-              <TabsContent value="gallery" className="mt-6">
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-                  }`}
-                >
-                  {filteredOras.map((ora) => (
-                    <OraCard key={ora.id} ora={ora} viewMode={viewMode} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="v2" className="mt-6">
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-                  }`}
-                >
-                  {filteredOras.map((ora) => (
-                    <OraCardV2 key={ora.id} ora={ora} viewMode={viewMode} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="collectible" className="mt-6">
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-                  }`}
-                >
-                  {filteredOras.map((ora) => (
-                    <OraCardCollectible key={ora.id} ora={ora} viewMode={viewMode} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="updated" className="mt-6">
-                <div
-                  className={`grid gap-6 ${
-                    viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-                  }`}
-                >
-                  {filteredOras.map((ora) => (
-                    <OraCardCollectibleUpdated key={ora.id} ora={ora} viewMode={viewMode} />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            {filteredOras.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No Oras found matching your criteria.</p>
-                <Button onClick={clearFilters} className="mt-4">
-                  Clear Filters
-                </Button>
+        {/* Initial State */}
+        {!loading && oras.length === 0 && !walletInput && !error && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center shadow-lg">
+              <Globe className="w-12 h-12 text-blue-500" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Ready to Build Your Collection</h3>
+            <p className="text-gray-600 mb-8 text-lg max-w-2xl mx-auto">
+              {isConnected
+                ? "Your wallet is connected! Click the lightning bolt to discover your Oras, or enter any address below."
+                : "Connect your wallet above or enter a wallet address/ENS name below to discover Sugartown Oras"}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto text-sm text-gray-500">
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">0x1234...abcd</code>
+                <p className="mt-2 text-gray-600">Wallet address</p>
               </div>
-            )}
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">vitalik.eth</code>
+                <p className="mt-2 text-gray-600">ENS name</p>
+              </div>
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">example.xyz</code>
+                <p className="mt-2 text-gray-600">ENS name</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Powered by OraKit Section - Properly spaced */}
+        <div className="mt-20 pt-16 border-t border-white/30">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-3xl border border-pink-200/50 mb-8 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-black text-lg">O</span>
+              </div>
+              <span className="font-bold text-gray-800 text-lg">Powered by OraKit</span>
+              <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-sm px-3 py-1">
+                CMP v1.0
+              </Badge>
+            </div>
+
+            <h3 className="text-4xl font-bold text-gray-800 mb-6">The Character Modeling Protocol</h3>
+
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <Brain className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">Identity Core</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Define archetypes, alignments, and core personality traits for consistent character behavior
+                </p>
+              </div>
+
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <Palette className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">ToneBoard</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Fine-tune personality dimensions with multi-axis tone controls for nuanced character expression
+                </p>
+              </div>
+
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">LorePanel</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Rich backstory management with AI-enhanced narrative generation and memory systems
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+              <Button
+                variant="outline"
+                className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-8 py-4 gap-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <BookOpen className="w-5 h-5" />
+                View Documentation
+              </Button>
+              <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-xl px-8 py-4 gap-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                <Brain className="w-5 h-5" />
+                Explore CMP Schema
+              </Button>
+            </div>
+
+            <p className="text-sm text-gray-500 font-mono">
+              OraKit • Character-first • Open-source CMP toolkit for Web3 identity
+            </p>
           </div>
         </div>
       </div>

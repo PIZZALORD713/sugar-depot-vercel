@@ -3,14 +3,14 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
-import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Sugartown Ora Dashboard",
-  description: "NFT Dashboard for Sugartown Ora Collection",
-    generator: 'v0.dev'
+  description: "Discover and explore your Sugartown Ora NFT collection",
+  keywords: ["NFT", "Sugartown", "Ora", "Ethereum", "Dashboard"],
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -19,11 +19,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Providers>{children}</Providers>
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

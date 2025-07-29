@@ -7,6 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    domains: ['opensea.mypinata.cloud', 'i.seadn.io'],
     unoptimized: true,
   },
 }
