@@ -2,13 +2,18 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAccount } from "wagmi"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Loader2, Wallet, Search, Globe, Filter, Sparkles, Zap, Brain, Palette, BookOpen } from "lucide-react"
+import { FilterPanel } from "@/components/filter-panel"
+import { FilterChips } from "@/components/filter-chips"
+import { OraCardCollectible } from "@/components/ora-card-collectible"
+import { WalletConnect } from "@/components/wallet-connect"
+import { useFilterStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Wallet, Search, ExternalLink, Globe } from "lucide-react"
-import Image from "next/image"
 
 interface Ora {
   name: string
@@ -31,6 +36,33 @@ export default function OraDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [resolvedInfo, setResolvedInfo] = useState<{ from: string; address: string } | null>(null)
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
+  const [autoFetched, setAutoFetched] = useState(false)
+
+  // Wagmi hooks
+  const { address, isConnected } = useAccount()
+
+  // Get filtered oras from store
+  const { getFilteredOras, favorites } = useFilterStore()
+  const filteredOras = getFilteredOras(oras)
+
+  // Auto-fetch when wallet connects
+  useEffect(() => {
+    if (isConnected && address && !autoFetched) {
+      console.log("🔗 Wallet connected, auto-fetching Oras for:", address)
+      setWalletInput(address)
+      fetchOrasForAddress(address)
+      setAutoFetched(true)
+    }
+  }, [isConnected, address, autoFetched])
+
+  // Reset auto-fetch flag when wallet disconnects
+  useEffect(() => {
+    if (!isConnected) {
+      setAutoFetched(false)
+      setResolvedInfo(null)
+    }
+  }, [isConnected])
 
   const isENSName = (input: string) => {
     return (
@@ -38,18 +70,12 @@ export default function OraDashboard() {
     )
   }
 
-  const fetchOras = async () => {
-    if (!walletInput.trim()) {
-      setError("Please enter a wallet address or ENS name")
-      return
-    }
-
+  const fetchOrasForAddress = async (targetAddress: string) => {
     setLoading(true)
     setError("")
-    setResolvedInfo(null)
 
     try {
-      const res = await fetch(`/api/oras?wallet=${encodeURIComponent(walletInput.trim())}`)
+      const res = await fetch(`/api/oras?wallet=${encodeURIComponent(targetAddress)}`)
       const data: ApiResponse = await res.json()
 
       if (!res.ok) {
@@ -68,10 +94,16 @@ export default function OraDashboard() {
           from: data.resolvedFrom,
           address: data.resolvedAddress,
         })
+      } else if (isConnected && address === targetAddress) {
+        // If this was auto-fetched from connected wallet, show that info
+        setResolvedInfo({
+          from: "Connected Wallet",
+          address: targetAddress,
+        })
       }
 
       if (orasData.length === 0) {
-        const inputType = isENSName(walletInput.trim()) ? "ENS name" : "wallet"
+        const inputType = isENSName(targetAddress) ? "ENS name" : "wallet"
         setError(
           `No Sugartown Oras found for this ${inputType}. The ${inputType} may not contain any Oras from the Sugartown collection.`,
         )
@@ -83,6 +115,15 @@ export default function OraDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchOras = async () => {
+    if (!walletInput.trim()) {
+      setError("Please enter a wallet address or ENS name")
+      return
+    }
+
+    await fetchOrasForAddress(walletInput.trim())
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -99,188 +140,346 @@ export default function OraDashboard() {
     }
   }
 
+  const handleUseConnectedWallet = () => {
+    if (address) {
+      setWalletInput(address)
+      fetchOrasForAddress(address)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Sugartown Ora Dashboard</h1>
-          <p className="text-gray-600 text-lg">Discover and explore your Sugartown Ora NFT collection</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Supports wallet addresses (0x...) and ENS names (.eth, .xyz, .com)
-          </p>
-        </div>
-
-        {/* Search Section */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  {isENSName(walletInput) ? (
-                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  ) : (
-                    <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  )}
-                  <Input
-                    placeholder="Enter wallet address (0x...) or ENS name (vitalik.eth)"
-                    value={walletInput}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                    className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                    disabled={loading}
-                  />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      {/* Top Navigation Bar */}
+      <div className="w-full bg-white/80 backdrop-blur-lg border-b border-white/30 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative">
+              <div className="p-2.5 bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                <div className="w-7 h-7 bg-white rounded-xl flex items-center justify-center">
+                  <span className="text-lg font-black bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+                    O
+                  </span>
                 </div>
-                <Button
-                  onClick={fetchOras}
-                  disabled={loading || !walletInput.trim()}
-                  className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isENSName(walletInput) ? "Resolving..." : "Fetching..."}
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Fetch Oras
-                    </>
-                  )}
-                </Button>
               </div>
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent leading-none">
+                OraKit
+              </h1>
+              <div className="text-xs font-mono text-gray-500 tracking-wider uppercase leading-none mt-0.5">
+                CMP-Powered AI Toolkit
+              </div>
+            </div>
+          </div>
 
-              {/* ENS Resolution Info */}
-              {resolvedInfo && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-blue-600" />
-                    <p className="text-blue-700 text-sm">
-                      <strong>{resolvedInfo.from}</strong> resolved to{" "}
-                      <code className="bg-blue-100 px-1 rounded text-xs">{resolvedInfo.address}</code>
-                    </p>
+          {/* Right Side - Wallet Connect */}
+          <WalletConnect />
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Hero Section - Centered */}
+        <div className="text-center py-16">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
+              Collect. Customize. Connect.
+              <br />
+              <span className="text-3xl">Your Oras, Your Personalities</span>
+            </h2>
+            <p className="text-xl text-gray-700 mb-4 font-medium">
+              Transform your Sugartown Oras into unique AI personalities with CMP
+            </p>
+            <p className="text-sm text-gray-500 font-mono mb-12">
+              Supports wallet addresses (0x...) and ENS names (.eth, .xyz, .com)
+            </p>
+
+            {/* Search Section - Centered */}
+            <Card className="shadow-xl border-0 bg-white/70 backdrop-blur-lg rounded-2xl overflow-hidden max-w-3xl mx-auto">
+              <CardContent className="p-8">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    {isENSName(walletInput) ? (
+                      <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    ) : (
+                      <Wallet className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    )}
+                    <Input
+                      placeholder="Enter wallet address (0x...) or ENS name (vitalik.eth)"
+                      value={walletInput}
+                      onChange={handleInputChange}
+                      onKeyPress={handleKeyPress}
+                      className="pl-12 h-16 border-white/30 bg-white/50 focus:bg-white/80 focus:border-blue-300 focus:ring-blue-200 rounded-xl text-lg transition-all duration-200"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    {/* Use Connected Wallet Button */}
+                    {isConnected && address && address !== walletInput && (
+                      <Button
+                        onClick={handleUseConnectedWallet}
+                        variant="outline"
+                        className="h-16 px-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:from-green-100 hover:to-emerald-100 text-green-700 font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                        title="Use connected wallet address"
+                      >
+                        <Zap className="w-5 h-5" />
+                      </Button>
+                    )}
+
+                    <Button
+                      onClick={fetchOras}
+                      disabled={loading || !walletInput.trim()}
+                      className="h-16 px-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                          {isENSName(walletInput) ? "Resolving..." : "Fetching..."}
+                        </>
+                      ) : (
+                        <>
+                          <Search className="mr-3 h-5 w-5" />
+                          Discover Oras
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
-              )}
 
-              {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {/* Status Messages - Centered */}
+                {isConnected && address && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <p className="text-green-700 text-sm text-center">
+                        <strong>Connected:</strong>{" "}
+                        <code className="bg-green-100 px-2 py-1 rounded-lg text-xs font-mono">
+                          {address.slice(0, 6)}...{address.slice(-4)}
+                        </code>
+                        {address !== walletInput && (
+                          <Button
+                            onClick={handleUseConnectedWallet}
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-100"
+                          >
+                            Use this wallet
+                          </Button>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {resolvedInfo && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-center gap-3">
+                      {resolvedInfo.from === "Connected Wallet" ? (
+                        <Zap className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <Globe className="h-5 w-5 text-blue-600" />
+                      )}
+                      <p className="text-blue-700 text-sm text-center">
+                        <strong>{resolvedInfo.from}</strong>{" "}
+                        {resolvedInfo.from !== "Connected Wallet" && "resolved to "}
+                        <code className="bg-blue-100 px-2 py-1 rounded-lg text-xs font-mono">
+                          {resolvedInfo.address}
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl">
+                    <p className="text-red-600 text-sm text-center">{error}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Results */}
+        {/* Results Header - Full width but contained */}
         {oras.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              Found {oras.length} Sugartown Ora{oras.length !== 1 ? "s" : ""}
-            </h2>
-            <p className="text-gray-600">
-              Displaying all Sugartown Oras from {resolvedInfo ? `${resolvedInfo.from}` : "this wallet"}
-            </p>
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8 pb-6 border-b border-white/30">
+            <div className="text-center lg:text-left">
+              <h3 className="text-4xl font-black bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-3">
+                Your Character Collection
+              </h3>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                <div className="text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30 font-mono">
+                  {oras.length} Characters • {filteredOras.length} shown • {favorites.size} ⭐
+                </div>
+                <div className="px-3 py-1.5 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-700 rounded-xl text-xs font-semibold border border-pink-200">
+                  CMP READY
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-end">
+              <Button
+                onClick={() => setFilterPanelOpen(true)}
+                variant="outline"
+                className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Filter className="w-5 h-5 mr-2" />
+                Filters
+              </Button>
+              <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Bulk Edit CMP
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Ora Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {oras.map((ora) => (
-            <Card
+        {/* Filter Chips */}
+        <FilterChips />
+
+        {/* Filter Panel */}
+        <FilterPanel oras={oras} isOpen={filterPanelOpen} onClose={() => setFilterPanelOpen(false)} />
+
+        {/* Ora Grid - Character Collection */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-16">
+          {filteredOras.map((ora) => (
+            <OraCardCollectible
               key={`${ora.name}-${ora.oraNumber}`}
-              className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm overflow-hidden"
-            >
-              <CardContent className="p-0">
-                {/* Image Container */}
-                <div className="relative aspect-square overflow-hidden bg-gray-100">
-                  <Image
-                    src={ora.image || "/placeholder.svg"}
-                    alt={ora.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    crossOrigin="anonymous"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  {/* OpenSea Link */}
-                  <a
-                    href={ora.openseaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-black/70"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-lg text-gray-900 truncate">{ora.name}</h3>
-                    <Badge variant="outline" className="text-xs">
-                      #{ora.oraNumber}
-                    </Badge>
-                  </div>
-
-                  {/* Traits */}
-                  {Object.keys(ora.traits).length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Traits:</h4>
-                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                        {Object.entries(ora.traits).map(([traitType, value]) => (
-                          <div key={traitType} className="flex items-center justify-between text-xs">
-                            <span className="text-gray-600 font-medium capitalize">{traitType.replace(/_/g, " ")}</span>
-                            <Badge
-                              variant="secondary"
-                              className="ml-2 bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-2 py-0.5"
-                            >
-                              {value}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {Object.keys(ora.traits).length === 0 && (
-                    <p className="text-sm text-gray-500 italic">No traits available</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              ora={ora}
+              initialCMPData={undefined} // This would come from your backend/storage in a real app
+            />
           ))}
         </div>
 
-        {/* Empty State */}
-        {!loading && oras.length === 0 && walletInput && !error && (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <Search className="w-8 h-8 text-gray-400" />
+        {/* Empty State - No results after filtering */}
+        {!loading && oras.length > 0 && filteredOras.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
+              <Filter className="w-12 h-12 text-gray-400" />
             </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">No Oras Found</h3>
-            <p className="text-gray-600">
-              This {isENSName(walletInput) ? "ENS name" : "wallet"} doesn't contain any Sugartown Oras.
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">No Matching Characters</h3>
+            <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+              Try adjusting your filters to find more characters in your collection.
+            </p>
+            <Button
+              onClick={() => setFilterPanelOpen(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              Adjust Filters
+            </Button>
+          </div>
+        )}
+
+        {/* Empty State - No Oras found */}
+        {!loading && oras.length === 0 && walletInput && !error && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
+              <Search className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">No Characters Found</h3>
+            <p className="text-gray-600 text-lg max-w-md mx-auto">
+              This {isENSName(walletInput) ? "ENS name" : "wallet"} doesn't contain any Sugartown Oras to transform into
+              characters.
             </p>
           </div>
         )}
 
         {/* Initial State */}
         {!loading && oras.length === 0 && !walletInput && !error && (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 mx-auto mb-4 bg-blue-50 rounded-full flex items-center justify-center">
-              <Globe className="w-8 h-8 text-blue-500" />
+          <div className="text-center py-20">
+            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center shadow-lg">
+              <Globe className="w-12 h-12 text-blue-500" />
             </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Ready to Explore</h3>
-            <p className="text-gray-600">Enter a wallet address or ENS name above to discover Sugartown Oras</p>
-            <div className="mt-4 text-sm text-gray-500">
-              <p>Examples:</p>
-              <p>• 0x1234...abcd (wallet address)</p>
-              <p>• vitalik.eth (ENS name)</p>
-              <p>• example.xyz (ENS name)</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Ready to Build Your Collection</h3>
+            <p className="text-gray-600 mb-8 text-lg max-w-2xl mx-auto">
+              {isConnected
+                ? "Your wallet is connected! Click the lightning bolt to discover your Oras, or enter any address below."
+                : "Connect your wallet above or enter a wallet address/ENS name below to discover Sugartown Oras"}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto text-sm text-gray-500">
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">0x1234...abcd</code>
+                <p className="mt-2 text-gray-600">Wallet address</p>
+              </div>
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">vitalik.eth</code>
+                <p className="mt-2 text-gray-600">ENS name</p>
+              </div>
+              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
+                <code className="text-sm font-mono text-gray-700 font-semibold">example.xyz</code>
+                <p className="mt-2 text-gray-600">ENS name</p>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Powered by OraKit Section - Properly spaced */}
+        <div className="mt-20 pt-16 border-t border-white/30">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-3xl border border-pink-200/50 mb-8 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-black text-lg">O</span>
+              </div>
+              <span className="font-bold text-gray-800 text-lg">Powered by OraKit</span>
+              <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-sm px-3 py-1">
+                CMP v1.0
+              </Badge>
+            </div>
+
+            <h3 className="text-4xl font-bold text-gray-800 mb-6">The Character Modeling Protocol</h3>
+
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <Brain className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">Identity Core</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Define archetypes, alignments, and core personality traits for consistent character behavior
+                </p>
+              </div>
+
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <Palette className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">ToneBoard</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Fine-tune personality dimensions with multi-axis tone controls for nuanced character expression
+                </p>
+              </div>
+
+              <div className="p-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-bold text-gray-800 mb-3 text-xl">LorePanel</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Rich backstory management with AI-enhanced narrative generation and memory systems
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+              <Button
+                variant="outline"
+                className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-8 py-4 gap-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <BookOpen className="w-5 h-5" />
+                View Documentation
+              </Button>
+              <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-xl px-8 py-4 gap-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                <Brain className="w-5 h-5" />
+                Explore CMP Schema
+              </Button>
+            </div>
+
+            <p className="text-sm text-gray-500 font-mono">
+              OraKit • Character-first • Open-source CMP toolkit for Web3 identity
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
