@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Sugartown Ora Dashboard",
   description: "Discover and explore your Sugartown Ora NFT collection",
   keywords: ["NFT", "Sugartown", "Ora", "Ethereum", "Dashboard"],
-  generator: "v0.dev",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -20,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@rainbow-me/rainbowkit@2.1.0/dist/index.css" />
+      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

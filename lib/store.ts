@@ -12,7 +12,7 @@ interface Ora {
 interface FilterState {
   // Search and filters
   searchNumber: string
-  filters: Record<string, string[]>
+  selectedTraits: Record<string, string[]>
   showFavoritesOnly: boolean
 
   // Favorites (persisted)
@@ -20,12 +20,10 @@ interface FilterState {
 
   // Actions
   setSearchNumber: (number: string) => void
-  setFilters: (filters: Record<string, string[]>) => void
+  setTraitFilter: (traitType: string, values: string[]) => void
   clearTraitFilter: (traitType: string) => void
   clearAllFilters: () => void
   setShowFavoritesOnly: (show: boolean) => void
-  addFavorite: (id: string) => void
-  removeFavorite: (id: string) => void
   toggleFavorite: (oraNumber: string) => void
   isFavorite: (oraNumber: string) => boolean
 
@@ -39,7 +37,7 @@ export const useFilterStore = create<FilterState>()(
     (set, get) => ({
       // Initial state
       searchNumber: "",
-      filters: {},
+      selectedTraits: {},
       showFavoritesOnly: false,
       favorites: new Set<string>(),
 
@@ -48,42 +46,33 @@ export const useFilterStore = create<FilterState>()(
         set({ searchNumber: number })
       },
 
-      setFilters: (filters: Record<string, string[]>) => {
-        set({ filters })
+      setTraitFilter: (traitType: string, values: string[]) => {
+        set((state) => ({
+          selectedTraits: {
+            ...state.selectedTraits,
+            [traitType]: values,
+          },
+        }))
       },
 
       clearTraitFilter: (traitType: string) => {
         set((state) => {
-          const newFilters = { ...state.filters }
-          delete newFilters[traitType]
-          return { filters: newFilters }
+          const newTraits = { ...state.selectedTraits }
+          delete newTraits[traitType]
+          return { selectedTraits: newTraits }
         })
       },
 
       clearAllFilters: () => {
         set({
           searchNumber: "",
-          filters: {},
+          selectedTraits: {},
           showFavoritesOnly: false,
         })
       },
 
       setShowFavoritesOnly: (show: boolean) => {
         set({ showFavoritesOnly: show })
-      },
-
-      addFavorite: (id: string) => {
-        set((state) => ({
-          favorites: new Set([...state.favorites, id]),
-        }))
-      },
-
-      removeFavorite: (id: string) => {
-        set((state) => {
-          const newFavorites = new Set(state.favorites)
-          newFavorites.delete(id)
-          return { favorites: newFavorites }
-        })
       },
 
       toggleFavorite: (oraNumber: string) => {
@@ -115,7 +104,7 @@ export const useFilterStore = create<FilterState>()(
           )
         } else {
           // Apply trait filters only if no search
-          Object.entries(state.filters).forEach(([traitType, values]) => {
+          Object.entries(state.selectedTraits).forEach(([traitType, values]) => {
             if (values.length > 0) {
               filtered = filtered.filter((ora) => {
                 const oraTraitValue = ora.traits[traitType]
