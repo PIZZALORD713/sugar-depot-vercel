@@ -39,7 +39,6 @@
     "@radix-ui/react-tooltip": "latest",
     "@rainbow-me/rainbowkit": "latest",
     "@tanstack/react-query": "latest",
-    "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
@@ -62,7 +61,7 @@
     "tailwindcss-animate": "^1.0.7",
     "use-sync-external-store": "latest",
     "vaul": "latest",
-    "viem": "^2.0.0",
+    "viem": "2.9.20",
     "wagmi": "latest",
     "zod": "^3.24.1",
     "zustand": "latest"
