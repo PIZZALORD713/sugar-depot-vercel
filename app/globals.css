@@ -24,6 +24,11 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.75rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
 
   .dark {
@@ -46,6 +51,11 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -58,281 +68,85 @@
   }
 }
 
-/* Custom RainbowKit Theme Overrides */
-:root {
-  --rk-colors-accentColor: #3b82f6;
-  --rk-colors-accentColorForeground: #ffffff;
-  --rk-colors-actionButtonBorder: rgba(255, 255, 255, 0.04);
-  --rk-colors-actionButtonBorderMobile: rgba(255, 255, 255, 0.08);
-  --rk-colors-actionButtonSecondaryBackground: rgba(255, 255, 255, 0.08);
-  --rk-colors-closeButton: rgba(224, 232, 255, 0.6);
-  --rk-colors-closeButtonBackground: rgba(255, 255, 255, 0.08);
-  --rk-colors-connectButtonBackground: #3b82f6;
-  --rk-colors-connectButtonBackgroundError: #ff494a;
-  --rk-colors-connectButtonInnerBackground: linear-gradient(0deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.06));
-  --rk-colors-connectButtonText: #ffffff;
-  --rk-colors-connectButtonTextError: #ffffff;
-  --rk-colors-connectionIndicator: #30e000;
-  --rk-colors-downloadBottomCardBackground: linear-gradient(
-      126deg,
-      rgba(255, 255, 255, 0) 9.49%,
-      rgba(171, 171, 171, 0.04) 71.04%
-    ), #ffffff;
-  --rk-colors-downloadTopCardBackground: linear-gradient(
-      126deg,
-      rgba(171, 171, 171, 0.2) 9.49%,
-      rgba(255, 255, 255, 0) 71.04%
-    ), #ffffff;
-  --rk-colors-error: #ff494a;
-  --rk-colors-generalBorder: rgba(255, 255, 255, 0.08);
-  --rk-colors-generalBorderDim: rgba(255, 255, 255, 0.04);
-  --rk-colors-menuItemBackground: rgba(224, 232, 255, 0.1);
-  --rk-colors-modalBackdrop: rgba(0, 0, 0, 0.3);
-  --rk-colors-modalBackground: rgba(255, 255, 255, 0.95);
-  --rk-colors-modalBorder: rgba(255, 255, 255, 0.08);
-  --rk-colors-modalText: #1a202c;
-  --rk-colors-modalTextDim: rgba(60, 66, 66, 0.3);
-  --rk-colors-modalTextSecondary: rgba(51, 65, 85, 0.6);
-  --rk-colors-profileAction: rgba(224, 232, 255, 0.1);
-  --rk-colors-profileActionHover: rgba(224, 232, 255, 0.2);
-  --rk-colors-profileForeground: rgba(255, 255, 255, 0.95);
-  --rk-colors-selectedOptionBorder: #3b82f6;
-  --rk-colors-standby: #ffd641;
-  --rk-radii-actionButton: 12px;
-  --rk-radii-connectButton: 12px;
-  --rk-radii-menuButton: 12px;
-  --rk-radii-modal: 24px;
-  --rk-radii-modalMobile: 28px;
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Enhanced RainbowKit Modal Styling */
-[data-rk] {
-  --rk-fonts-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans", sans-serif;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Only target the modal backdrop - be very specific */
-div[data-rk][style*="position: fixed"] {
-  backdrop-filter: blur(8px) !important;
-  background: rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Modal container with glassmorphic styling - only when it's actually a modal */
-div[data-rk][style*="position: fixed"] > div {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-/* Wallet option buttons with hover effects */
-div[data-rk] button[data-testid*="rk-wallet-option"] {
-  background: rgba(255, 255, 255, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  transition: all 0.2s ease !important;
-}
-
-div[data-rk] button[data-testid*="rk-wallet-option"]:hover {
-  background: rgba(255, 255, 255, 0.8) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Connect button styling */
-div[data-rk] button[data-testid="rk-connect-button"] {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
-  border: none !important;
-  transition: all 0.2s ease !important;
-}
-
-div[data-rk] button[data-testid="rk-connect-button"]:hover {
-  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.4) !important;
-}
-
-/* Custom scrollbar for trait lists and filter panel */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #7c3aed);
-}
-
-/* Enhanced animations */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-glow {
-  animation: glow 3s ease-in-out infinite;
-}
-
-/* Glassmorphic effects */
-.glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.glass-dark {
+::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
-/* Collapsible animations */
-[data-state="open"] {
-  animation: collapsible-down 0.2s ease-out;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
-[data-state="closed"] {
-  animation: collapsible-up 0.2s ease-out;
+/* Smooth animations */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
+    transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
-@keyframes collapsible-down {
-  from {
-    height: 0;
-    opacity: 0;
-  }
+/* Loading animation */
+@keyframes spin {
   to {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
+    transform: rotate(360deg);
   }
 }
 
-@keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
-  }
-  to {
-    height: 0;
-    opacity: 0;
-  }
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
-/* OraKit-specific animations and effects */
-@keyframes candy-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3), 0 0 40px rgba(147, 51, 234, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(236, 72, 153, 0.4), 0 0 60px rgba(147, 51, 234, 0.3);
-  }
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-@keyframes pulse-rainbow {
-  0%,
-  100% {
-    background: linear-gradient(45deg, #ec4899, #8b5cf6);
-  }
-  33% {
-    background: linear-gradient(45deg, #8b5cf6, #06b6d4);
-  }
-  66% {
-    background: linear-gradient(45deg, #06b6d4, #10b981);
-  }
-}
-
-.animate-candy-glow {
-  animation: candy-glow 3s ease-in-out infinite;
-}
-
-.animate-pulse-rainbow {
-  animation: pulse-rainbow 4s ease-in-out infinite;
-}
-
-/* Enhanced card hover effects */
-.ora-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ora-card-hover:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-/* CMP Editor specific styles */
-.cmp-editor-tab {
-  transition: all 0.2s ease;
-}
-
-.cmp-editor-tab[data-state="active"] {
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  color: white;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-}
-
-/* Tone slider customization */
-.tone-slider [data-orientation="horizontal"] {
-  background: linear-gradient(90deg, #f3f4f6, #ec4899, #8b5cf6);
-}
-
-/* Line clamp utility */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Glassmorphic button effects */
-.glass-button {
+/* Glass morphism effect */
+.glass {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
 }
 
-.glass-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Archetype selection animation */
-.archetype-card {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.archetype-card:hover {
-  transform: translateY(-2px) scale(1.02);
+/* Button animations */
+.btn-animate {
+  position: relative;
+  overflow: hidden;
 }
 
-.archetype-card.selected {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+.btn-animate::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-animate:hover::before {
+  left: 100%;
 }

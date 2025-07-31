@@ -1,13 +1,12 @@
 "use client"
-
-import { Card } from "@/components/ui/card"
-
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, Sparkles, RotateCcw } from "lucide-react"
+import { X } from "lucide-react"
 import { useFilterStore } from "@/lib/store"
 
-export function FilterChips() {
+type FilterChipsProps = {}
+
+export function FilterChips({}: FilterChipsProps) {
   const {
     searchNumber,
     selectedTraits,
@@ -19,6 +18,14 @@ export function FilterChips() {
   } = useFilterStore()
 
   const hasActiveFilters = searchNumber || Object.keys(selectedTraits).length > 0 || showFavoritesOnly
+
+  const activeFilters: string[] = []
+
+  if (searchNumber) activeFilters.push(`Search: ${searchNumber}`)
+  if (showFavoritesOnly) activeFilters.push("Favorites")
+  Object.entries(selectedTraits).forEach(([traitType, values]) =>
+    values.forEach((value) => activeFilters.push(`${traitType.replace(/_/g, " ")}: ${value}`)),
+  )
 
   if (!hasActiveFilters) return null
 
@@ -44,69 +51,37 @@ export function FilterChips() {
   }
 
   return (
-    <div className="mb-6">
-      <Card className="p-4 bg-white/60 backdrop-blur-sm border-white/30 rounded-2xl shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap gap-2">
-            {/* Search Chip */}
-            {searchNumber && (
-              <Badge
-                variant="secondary"
-                className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200 rounded-xl px-3 py-1.5 flex items-center gap-2 hover:shadow-md transition-shadow"
-              >
-                Search: {searchNumber}
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-red-600 transition-colors"
-                  onClick={() => setSearchNumber("")}
-                />
-              </Badge>
-            )}
-
-            {/* Favorites Chip */}
-            {showFavoritesOnly && (
-              <Badge
-                variant="secondary"
-                className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-yellow-200 rounded-xl px-3 py-1.5 flex items-center gap-2 hover:shadow-md transition-shadow"
-              >
-                <Sparkles className="h-3 w-3 fill-current" />
-                Favorites
-                <X
-                  className="h-3 w-3 cursor-pointer hover:text-red-600 transition-colors"
-                  onClick={() => setShowFavoritesOnly(false)}
-                />
-              </Badge>
-            )}
-
-            {/* Trait Chips */}
-            {Object.entries(selectedTraits).map(([traitType, values]) =>
-              values.map((value) => (
-                <Badge
-                  key={`${traitType}-${value}`}
-                  variant="secondary"
-                  className="bg-gradient-to-r from-green-100 to-teal-100 text-green-800 border-green-200 rounded-xl px-3 py-1.5 flex items-center gap-2 hover:shadow-md transition-shadow"
-                >
-                  {traitType.replace(/_/g, " ")}: {value}
-                  <X
-                    className="h-3 w-3 cursor-pointer hover:text-red-600 transition-colors"
-                    onClick={() => handleTraitRemove(traitType, value)}
-                  />
-                </Badge>
-              )),
-            )}
-          </div>
-
-          {/* Clear All Button */}
+    <div className="flex flex-wrap gap-2 mb-6">
+      {activeFilters.map((filter, index) => (
+        <Badge
+          key={index}
+          variant="secondary"
+          className="flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm border-white/30"
+        >
+          {filter}
           <Button
-            onClick={clearAllFilters}
             variant="ghost"
             size="sm"
-            className="ml-4 text-gray-600 hover:text-gray-900 hover:bg-white/50 rounded-xl transition-colors"
+            className="h-4 w-4 p-0 hover:bg-transparent"
+            onClick={() => {
+              // Handle filter removal
+              const [traitType, value] = filter.split(": ")
+              if (traitType === "Search") {
+                setSearchNumber("")
+              } else if (traitType === "Favorites") {
+                setShowFavoritesOnly(false)
+              } else {
+                handleTraitRemove(traitType, value)
+              }
+            }}
           >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Clear All ({getActiveFilterCount()})
+            <X className="h-3 w-3" />
           </Button>
-        </div>
-      </Card>
+        </Badge>
+      ))}
+      <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700" onClick={clearAllFilters}>
+        Clear all
+      </Button>
     </div>
   )
 }

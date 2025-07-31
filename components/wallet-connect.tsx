@@ -2,12 +2,14 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
-import { Wallet, ChevronDown, AlertTriangle } from "lucide-react"
+import { Wallet } from "lucide-react"
 
 export function WalletConnect() {
   return (
     <ConnectButton.Custom>
       {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
+        // Note: If your app doesn't use authentication, you
+        // can remove all 'authenticationStatus' checks
         const ready = mounted && authenticationStatus !== "loading"
         const connected =
           ready && account && chain && (!authenticationStatus || authenticationStatus === "authenticated")
@@ -28,65 +30,62 @@ export function WalletConnect() {
                 return (
                   <Button
                     onClick={openConnectModal}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 h-auto"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     <Wallet className="w-5 h-5 mr-2" />
-                    Sign with ETH
+                    Connect Wallet
                   </Button>
                 )
               }
 
               if (chain.unsupported) {
                 return (
-                  <Button onClick={openChainModal} variant="destructive" className="rounded-xl px-4 py-2 h-auto">
-                    <AlertTriangle className="w-4 h-4 mr-2" />
+                  <Button
+                    onClick={openChainModal}
+                    variant="destructive"
+                    className="rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
                     Wrong network
                   </Button>
                 )
               }
 
               return (
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     onClick={openChainModal}
                     variant="outline"
-                    className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-3 py-2 h-auto flex items-center gap-2"
+                    className="bg-white/70 backdrop-blur-sm border-white/30 hover:bg-white/90 rounded-xl px-4 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     {chain.hasIcon && (
                       <div
                         style={{
                           background: chain.iconBackground,
-                          width: 16,
-                          height: 16,
+                          width: 20,
+                          height: 20,
                           borderRadius: 999,
                           overflow: "hidden",
-                          marginRight: 4,
+                          marginRight: 8,
                         }}
                       >
                         {chain.iconUrl && (
                           <img
                             alt={chain.name ?? "Chain icon"}
                             src={chain.iconUrl || "/placeholder.svg"}
-                            style={{ width: 16, height: 16 }}
+                            style={{ width: 20, height: 20 }}
                           />
                         )}
                       </div>
                     )}
                     {chain.name}
-                    <ChevronDown className="w-4 h-4" />
                   </Button>
 
                   <Button
                     onClick={openAccountModal}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-2 h-auto"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
-                      <span className="max-w-[120px] truncate">{account.displayName}</span>
-                      {account.displayBalance && (
-                        <span className="text-green-200 text-sm">({account.displayBalance})</span>
-                      )}
-                    </div>
+                    {account.displayName}
+                    {account.displayBalance ? ` (${account.displayBalance})` : ""}
                   </Button>
                 </div>
               )
