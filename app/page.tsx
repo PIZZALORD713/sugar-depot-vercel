@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 import { FilterPanel } from "@/components/filter-panel"
 import { FilterChips } from "@/components/filter-chips"
-import { OraCardCollectible } from "@/components/ora-card-collectible-updated"
+import { OraCardCollectibleUpdated } from "@/components/ora-card-collectible-updated"
 import { WalletConnect } from "@/components/wallet-connect"
 import { useFilterStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
@@ -612,11 +612,16 @@ export default function OraDashboard() {
         {/* Ora Grid - Character Collection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-16">
           {filteredOras.map((ora) => (
-            <OraCardCollectible
+            <OraCardCollectibleUpdated
               key={`${ora.name}-${ora.oraNumber}`}
-              ora={ora}
-              initialCMPData={importedCMPData.get(ora.oraNumber)}
-              onCMPDataChange={(newCMPData) => handleCMPDataUpdate(ora.oraNumber, newCMPData)}
+              ora={{
+                oraId: ora.oraNumber,
+                image: ora.image,
+                traits: ora.traits,
+                cmp: importedCMPData.get(ora.oraNumber) || {},
+              }}
+              onCMPUpdate={(oraId, cmpData) => handleCMPDataUpdate(oraId, cmpData)}
+              isImported={importedOras.some((importedOra) => importedOra.oraNumber === ora.oraNumber)}
             />
           ))}
         </div>

@@ -39,7 +39,6 @@
     "@radix-ui/react-tooltip": "latest",
     "@rainbow-me/rainbowkit": "latest",
     "@tanstack/react-query": "latest",
-    "antd": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

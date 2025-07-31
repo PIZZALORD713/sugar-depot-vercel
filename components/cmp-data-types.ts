@@ -1,8 +1,8 @@
 // Create a shared types file for better type management
 export interface CMPData {
-  customName: string
+  customName?: string
   tagline: string
-  archetype: string
+  archetype?: string
   tone: {
     playful: number
     serious: number
@@ -11,9 +11,15 @@ export interface CMPData {
     empathetic: number
     assertive: number
   }
-  alignment: string
+  alignment?: string
   lore: string
   memoryLog: string[]
+  background?: string
+  personality?: string
+  goals?: string
+  relationships?: string
+  secrets?: string
+  notes?: string
 }
 
 export interface Ora {
@@ -22,6 +28,20 @@ export interface Ora {
   image: string
   traits: Record<string, string>
   openseaUrl: string
+}
+
+export interface OraWithCMP {
+  oraId: string
+  image: string
+  traits: Record<string, any>
+  cmp?: CMPData
+}
+
+export interface ExportData {
+  oraId: string
+  image: string
+  traits: Record<string, any>
+  cmp: CMPData
 }
 
 export const DEFAULT_CMP_DATA: CMPData = {
@@ -39,6 +59,12 @@ export const DEFAULT_CMP_DATA: CMPData = {
   alignment: "Chaotic Good",
   lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
   memoryLog: [],
+  background: "",
+  personality: "",
+  goals: "",
+  relationships: "",
+  secrets: "",
+  notes: "",
 }
 
 export const getAlignmentColor = (alignment: string): string => {
