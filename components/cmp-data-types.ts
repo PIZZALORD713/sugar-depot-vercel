@@ -1,5 +1,6 @@
+// Create a shared types file for better type management
 export interface CMPData {
-  customName?: string
+  customName: string
   tagline: string
   archetype: string
   tone: {
@@ -12,79 +13,68 @@ export interface CMPData {
   }
   alignment: string
   lore: string
-  memoryLog: Array<{
-    id: string
-    timestamp: string
-    content: string
-    category: string
-  }>
+  memoryLog: string[]
 }
 
-export interface OraWithCMP {
-  oraId: string
-  image: string
-  traits: Record<string, any>
-  cmp: CMPData
-}
-
-export interface ExportData {
-  oraId: string
-  image: string
-  traits: Record<string, any>
-  cmp: CMPData
-}
-
-export interface CMPCharacter {
-  id: string
+export interface Ora {
   name: string
-  class: string
-  level: number
-  experience: number
-  hitPoints: {
-    current: number
-    maximum: number
-    temporary: number
+  oraNumber: string
+  image: string
+  traits: Record<string, string>
+  openseaUrl: string
+}
+
+export const DEFAULT_CMP_DATA: CMPData = {
+  customName: "",
+  tagline: "Digital dreamweaver with a sweet tooth for chaos",
+  archetype: "creator",
+  tone: {
+    playful: 75,
+    serious: 25,
+    creative: 90,
+    analytical: 40,
+    empathetic: 60,
+    assertive: 55,
+  },
+  alignment: "Chaotic Good",
+  lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
+  memoryLog: [],
+}
+
+export const getAlignmentColor = (alignment: string): string => {
+  const colorMap: Record<string, string> = {
+    // Good alignments - warmer colors
+    "Chaotic Good": "from-emerald-400 to-green-500",
+    "Neutral Good": "from-blue-400 to-cyan-500",
+    "Lawful Good": "from-yellow-400 to-amber-500",
+
+    // Neutral alignments - balanced colors
+    "Chaotic Neutral": "from-purple-400 to-violet-500",
+    "True Neutral": "from-gray-400 to-slate-500",
+    "Lawful Neutral": "from-indigo-400 to-blue-500",
+
+    // Evil alignments - darker/cooler colors
+    "Chaotic Evil": "from-red-500 to-rose-600",
+    "Neutral Evil": "from-orange-500 to-red-600",
+    "Lawful Evil": "from-pink-500 to-purple-600",
   }
-  armorClass: number
-  proficiencyBonus: number
-  speed: number
-  stats: {
-    strength: number
-    dexterity: number
-    constitution: number
-    intelligence: number
-    wisdom: number
-    charisma: number
+  return colorMap[alignment] || "from-gray-400 to-slate-500"
+}
+
+export const getToneGlow = (tone: CMPData["tone"]): string => {
+  // Create a subtle glow based on dominant personality traits
+  const dominant = Object.entries(tone).reduce((a, b) =>
+    tone[a[0] as keyof typeof tone] > tone[b[0] as keyof typeof tone] ? a : b,
+  )
+
+  const glowMap: Record<string, string> = {
+    playful: "shadow-pink-200/50",
+    serious: "shadow-blue-200/50",
+    creative: "shadow-purple-200/50",
+    analytical: "shadow-cyan-200/50",
+    empathetic: "shadow-green-200/50",
+    assertive: "shadow-orange-200/50",
   }
-  savingThrows: Record<string, number>
-  skills: Record<string, number>
-  equipment: Array<{
-    id: string
-    name: string
-    quantity: number
-    description?: string
-  }>
-  spells: Array<{
-    id: string
-    name: string
-    level: number
-    school: string
-    description: string
-  }>
-  features: Array<{
-    id: string
-    name: string
-    description: string
-    source: string
-  }>
-  notes: Array<{
-    id: string
-    title: string
-    content: string
-    category: string
-    timestamp: string
-  }>
-  background: string
-  race: string
-  alignment: string
+
+  return glowMap[dominant[0]] || "shadow-gray-200/50"
 }

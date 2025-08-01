@@ -1,212 +1,204 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CMPEditorModal } from "./cmp-editor-modal"
-import { Brain, Palette, Download, Upload, Sparkles, Crown, Zap } from "lucide-react"
-import type { OraWithCMP, CMPData } from "./cmp-data-types"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Star, ExternalLink, Edit3 } from "lucide-react"
+import Image from "next/image"
+import { useFilterStore } from "@/lib/store"
+import { OraProfileModal } from "./ora-profile-modal"
+import { type CMPData, type Ora, DEFAULT_CMP_DATA, getAlignmentColor, getToneGlow } from "./cmp-data-types"
 
-interface OraCardProps {
-  ora: OraWithCMP
-  onCMPUpdate: (oraId: string, cmpData: CMPData) => void
-  isImported?: boolean
+interface OraCardCollectibleProps {
+  ora: Ora
+  initialCMPData?: CMPData
+  onCMPDataChange?: (cmpData: CMPData) => void
 }
 
-export function OraCardCollectibleUpdated({ ora, onCMPUpdate, isImported = false }: OraCardProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
+export function OraCardCollectible({ ora, initialCMPData, onCMPDataChange }: OraCardCollectibleProps) {
+  const { toggleFavorite, isFavorite } = useFilterStore()
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
 
-  const hasCMP = ora.cmp && Object.keys(ora.cmp).length > 0
-  const displayName = ora.cmp?.customName || `Ora #${ora.oraId}`
+  // Initialize CMP data with props or defaults
+  const [cmpData, setCMPData] = useState<CMPData>(initialCMPData || DEFAULT_CMP_DATA)
+  const [tempName, setTempName] = useState(cmpData.customName)
 
-  const handleCMPSave = (cmpData: CMPData) => {
-    onCMPUpdate(ora.oraId, cmpData)
-    setIsModalOpen(false)
+  const isOraFavorited = isFavorite(ora.oraNumber)
+  // Display custom name if set, otherwise show default format
+  const displayName = cmpData.customName || `Ora #${ora.oraNumber}`
+  const toneGlow = getToneGlow(cmpData.tone)
+  const alignmentColor = getAlignmentColor(cmpData.alignment)
+
+  // Handle CMP data updates from modal
+  const handleCMPDataChange = (newCMPData: CMPData) => {
+    setCMPData(newCMPData)
+    // Call the parent callback to update the global state
+    onCMPDataChange?.(newCMPData)
+    console.log("CMP data updated for Ora #" + ora.oraNumber, newCMPData)
   }
 
-  const handleExportCMP = () => {
-    if (!hasCMP) return
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleFavorite(ora.oraNumber)
+  }
 
-    const exportData = {
-      oraId: ora.oraId,
-      image: ora.image,
-      traits: ora.traits,
-      cmp: ora.cmp,
+  const handleCardClick = () => {
+    if (!isEditingName) {
+      setProfileModalOpen(true)
     }
+  }
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    })
+  const handleEditName = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setTempName(cmpData.customName)
+    setIsEditingName(true)
+  }
 
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `Ora-${ora.oraId}-CMP-Profile.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const handleSaveName = () => {
+    const newName = tempName.trim()
+    const updatedCMPData = { ...cmpData, customName: newName }
+    setCMPData(updatedCMPData)
+    // Call the parent callback to update the global state
+    onCMPDataChange?.(updatedCMPData)
+    setIsEditingName(false)
+  }
+
+  const handleCancelEdit = () => {
+    setTempName(cmpData.customName)
+    setIsEditingName(false)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSaveName()
+    } else if (e.key === "Escape") {
+      handleCancelEdit()
+    }
   }
 
   return (
     <>
       <Card
-        className={`group relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer ${
-          hasCMP
-            ? "bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 border-purple-200/50"
-            : "bg-white/70 border-white/30"
-        } backdrop-blur-sm`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => setIsModalOpen(true)}
+        className={`group hover:shadow-2xl transition-all duration-500 border-0 bg-white/90 backdrop-blur-sm overflow-hidden rounded-3xl hover:scale-[1.02] cursor-pointer ${toneGlow} hover:shadow-xl`}
+        onClick={handleCardClick}
       >
-        {/* Status Badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-          {isImported && (
-            <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-xs px-2 py-1 shadow-lg">
-              <Upload className="w-3 h-3 mr-1" />
-              Imported
-            </Badge>
-          )}
-          {hasCMP && (
-            <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 text-xs px-2 py-1 shadow-lg">
-              <Brain className="w-3 h-3 mr-1" />
-              CMP
-            </Badge>
-          )}
-        </div>
+        <CardContent className="p-0">
+          {/* Image Container - Hero Element */}
+          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-3xl">
+            <Image
+              src={ora.image || "/placeholder.svg"}
+              alt={displayName}
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-700"
+              crossOrigin="anonymous"
+            />
 
-        {/* Export Button */}
-        {hasCMP && (
-          <div className="absolute top-3 right-3 z-10">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-200 ${
-                isHovered ? "opacity-100" : "opacity-0"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation()
-                handleExportCMP()
-              }}
-            >
-              <Download className="w-4 h-4" />
-            </Button>
+            {/* Subtle mood glow overlay */}
+            <div
+              className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+            />
+
+            {/* Hover Actions - Top Right */}
+            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleFavoriteClick}
+                className={`p-2.5 rounded-xl transition-all duration-300 transform hover:scale-110 backdrop-blur-sm ${
+                  isOraFavorited
+                    ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg scale-105"
+                    : "bg-white/90 text-gray-600 hover:bg-white shadow-lg"
+                }`}
+              >
+                <Star className={`w-4 h-4 transition-all duration-200 ${isOraFavorited ? "fill-current" : ""}`} />
+              </Button>
+
+              <a
+                href={ora.openseaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-2.5 bg-white/90 backdrop-blur-sm rounded-xl text-gray-600 transition-all duration-300 hover:bg-white hover:scale-110 shadow-lg"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+
+            {/* CMP Ready Badge - Top Left */}
+            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 shadow-lg text-xs px-2 py-1">
+                CMP
+              </Badge>
+            </div>
           </div>
-        )}
 
-        {/* Ora Image */}
-        <div className="aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-          <img
-            src={ora.image || "/placeholder.svg?height=400&width=400"}
-            alt={displayName}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          />
-        </div>
-
-        <CardContent className="p-4">
-          {/* Character Name */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-lg text-gray-800 truncate">{displayName}</h3>
-            {hasCMP && <Crown className="w-5 h-5 text-purple-500 flex-shrink-0" />}
-          </div>
-
-          {/* CMP Info or Create CMP */}
-          {hasCMP ? (
-            <div className="space-y-3">
-              {/* Archetype & Alignment */}
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200 text-purple-700 text-xs"
-                >
-                  {ora.cmp.archetype}
-                </Badge>
-                <Badge variant="outline" className="bg-white/60 border-gray-200 text-gray-600 text-xs">
-                  {ora.cmp.alignment}
-                </Badge>
-              </div>
-
-              {/* Tagline */}
-              <p className="text-sm text-gray-600 italic line-clamp-2">"{ora.cmp.tagline}"</p>
-
-              {/* Personality Preview */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Personality</div>
-                <div className="grid grid-cols-3 gap-1">
-                  {Object.entries(ora.cmp.tone)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 3)
-                    .map(([trait, value]) => (
-                      <div key={trait} className="text-center">
-                        <div className="text-xs font-medium text-gray-700 capitalize truncate">{trait}</div>
-                        <div className="text-xs font-mono text-purple-600">{value}%</div>
-                      </div>
-                    ))}
+          {/* Content - Minimal and Clean */}
+          <div className="p-6 text-center">
+            {/* Name - Editable */}
+            <div className="mb-3">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    onBlur={handleSaveName}
+                    placeholder={`Ora #${ora.oraNumber}`}
+                    className="text-center font-bold text-lg border-2 border-blue-300 focus:border-blue-500 rounded-xl"
+                    autoFocus
+                    maxLength={30}
+                  />
                 </div>
-              </div>
-
-              {/* Edit Button */}
-              <Button
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsModalOpen(true)
-                }}
-              >
-                <Palette className="w-4 h-4 mr-2" />
-                Edit Character
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500 text-center py-4">
-                Transform this Ora into a unique AI character with CMP
-              </p>
-
-              <Button
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsModalOpen(true)
-                }}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Create Character
-              </Button>
-            </div>
-          )}
-
-          {/* Ora ID */}
-          <div className="mt-3 pt-3 border-t border-gray-200/50">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className="font-mono">#{ora.oraId}</span>
-              {hasCMP && (
-                <div className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  <span>AI Ready</span>
+              ) : (
+                <div className="flex items-center justify-center gap-2 group/name">
+                  <h3 className="font-bold text-xl text-gray-900 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-purple-600 group-hover:bg-clip-text transition-all duration-300">
+                    {displayName}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditName}
+                    className="p-1 opacity-0 group-hover/name:opacity-100 transition-opacity duration-200 hover:bg-gray-100 rounded-lg"
+                  >
+                    <Edit3 className="w-3 h-3 text-gray-400" />
+                  </Button>
                 </div>
               )}
+            </div>
+
+            {/* Alignment Badge - Now reflects current CMP data */}
+            <Badge
+              className={`bg-gradient-to-r ${alignmentColor} text-white border-0 shadow-lg px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300`}
+            >
+              {cmpData.alignment}
+            </Badge>
+
+            {/* Archetype indicator - subtle hint */}
+            <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <p className="text-xs text-gray-500 font-medium capitalize">{cmpData.archetype} • Click to customize</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* CMP Editor Modal */}
-      <CMPEditorModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        oraData={{
-          id: ora.oraId,
-          name: displayName,
-          image: ora.image,
-          oraNumber: ora.oraId,
-          traits: ora.traits,
+      <OraProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        ora={ora}
+        cmpData={cmpData}
+        customName={cmpData.customName}
+        onNameChange={(newName) => {
+          const updatedCMPData = { ...cmpData, customName: newName }
+          setCMPData(updatedCMPData)
+          onCMPDataChange?.(updatedCMPData)
         }}
-        initialData={ora.cmp}
-        onSave={handleCMPSave}
+        onCMPDataChange={handleCMPDataChange}
       />
     </>
   )
