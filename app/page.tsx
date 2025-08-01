@@ -25,6 +25,7 @@ import { FilterPanel } from "@/components/filter-panel"
 import { FilterChips } from "@/components/filter-chips"
 import { OraCardCollectible } from "@/components/ora-card-collectible-updated"
 import { WalletConnect } from "@/components/wallet-connect"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useFilterStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
 import { DEFAULT_CMP_DATA, type CMPData } from "@/components/cmp-data-types"
@@ -416,6 +417,7 @@ export default function OraDashboard() {
               </Button>
             )}
             <WalletConnect />
+            <ThemeToggle />
           </div>
         </div>
       </div>
