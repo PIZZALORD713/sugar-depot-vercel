@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "3.9.1",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
@@ -39,7 +39,6 @@
     "@radix-ui/react-tooltip": "latest",
     "@rainbow-me/rainbowkit": "latest",
     "@tanstack/react-query": "latest",
-    "@wagmi/core": "2.19.0",
     "autoprefixer": "10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -63,7 +62,7 @@
     "tailwindcss-animate": "^1.0.7",
     "use-sync-external-store": "1.5.0",
     "vaul": "latest",
-    "viem": "2.22.4",
+    "viem": "2.24.3",
     "wagmi": "latest",
     "zod": "3.24.1",
     "zustand": "latest"
@@ -79,7 +78,9 @@
   "packageManager": "pnpm@10.0.0",
   "pnpm": {
     "overrides": {
-      "viem": "2.22.4"
+      "@wagmi/core": "2.19.0",
+      "abitype": "1.0.8",
+      "viem": "2.24.3"
     }
   }
 }
