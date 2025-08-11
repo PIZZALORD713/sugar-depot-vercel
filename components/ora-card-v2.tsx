@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +23,8 @@ import {
 import Image from "next/image"
 import { useFilterStore } from "@/lib/store"
 import { CMPEditorModal } from "./cmp-editor-modal"
+import { cmpStorage } from "@/lib/cmp-storage"
+import type { CMPData } from "@/components/cmp-data-types"
 
 interface Ora {
   name: string
@@ -35,23 +36,6 @@ interface Ora {
 
 interface OraCardV2Props {
   ora: Ora
-}
-
-// Mock CMP data - in real app this would come from your backend
-const mockCMPData = {
-  tagline: "Digital dreamweaver with a sweet tooth for chaos",
-  archetype: "creator",
-  tone: {
-    playful: 75,
-    serious: 25,
-    creative: 90,
-    analytical: 40,
-    empathetic: 60,
-    assertive: 55,
-  },
-  alignment: "Chaotic Good",
-  lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
-  memoryLog: [],
 }
 
 const archetypeIcons = {
@@ -76,6 +60,9 @@ export function OraCardV2({ ora }: OraCardV2Props) {
   const { toggleFavorite, isFavorite } = useFilterStore()
   const [cmpEditorOpen, setCmpEditorOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+
+  const [cmpData, setCmpData] = useState<CMPData>(() => cmpStorage.getOrDefault(ora.oraNumber))
+
   const isOraFavorited = isFavorite(ora.oraNumber)
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -84,9 +71,14 @@ export function OraCardV2({ ora }: OraCardV2Props) {
     toggleFavorite(ora.oraNumber)
   }
 
-  const ArchetypeIcon = archetypeIcons[mockCMPData.archetype as keyof typeof archetypeIcons] || Palette
+  const handleCMPSave = (newCmpData: CMPData) => {
+    setCmpData(newCmpData)
+    cmpStorage.save(ora.oraNumber, newCmpData)
+  }
+
+  const ArchetypeIcon = archetypeIcons[cmpData.archetype as keyof typeof archetypeIcons] || Palette
   const archetypeColor =
-    archetypeColors[mockCMPData.archetype as keyof typeof archetypeColors] || "from-pink-500 to-purple-500"
+    archetypeColors[cmpData.archetype as keyof typeof archetypeColors] || "from-pink-500 to-purple-500"
 
   return (
     <>
@@ -147,7 +139,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
             {/* Archetype Badge */}
             <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Badge className={`bg-gradient-to-r ${archetypeColor} text-white border-0 shadow-lg`}>
-                {mockCMPData.archetype.charAt(0).toUpperCase() + mockCMPData.archetype.slice(1)}
+                {cmpData.archetype.charAt(0).toUpperCase() + cmpData.archetype.slice(1)}
               </Badge>
             </div>
           </div>
@@ -158,7 +150,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-xl text-gray-900 truncate group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-purple-600 group-hover:bg-clip-text transition-all duration-300">
-                  {ora.name}
+                  {cmpData.customName || ora.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge
@@ -171,7 +163,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
                     variant="outline"
                     className="text-xs bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 rounded-lg px-2 py-1"
                   >
-                    {mockCMPData.alignment}
+                    {cmpData.alignment}
                   </Badge>
                 </div>
               </div>
@@ -179,7 +171,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
 
             {/* CMP Tagline */}
             <div className="mb-4 p-3 bg-gradient-to-r from-pink-50/50 to-purple-50/50 rounded-xl border border-pink-100/50">
-              <p className="text-sm text-gray-700 italic font-medium leading-relaxed">"{mockCMPData.tagline}"</p>
+              <p className="text-sm text-gray-700 italic font-medium leading-relaxed">"{cmpData.tagline}"</p>
             </div>
 
             {/* Tone Indicators */}
@@ -189,7 +181,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tone Profile</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {Object.entries(mockCMPData.tone)
+                {Object.entries(cmpData.tone)
                   .slice(0, 3)
                   .map(([key, value]) => (
                     <div key={key} className="text-center">
@@ -212,7 +204,7 @@ export function OraCardV2({ ora }: OraCardV2Props) {
                 <BookOpen className="w-4 h-4 text-blue-500" />
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Lore</span>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{mockCMPData.lore}</p>
+              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{cmpData.lore}</p>
             </div>
 
             {/* Action Buttons */}
@@ -284,7 +276,8 @@ export function OraCardV2({ ora }: OraCardV2Props) {
         oraName={ora.name}
         oraNumber={ora.oraNumber}
         oraImage={ora.image}
-        initialCMP={mockCMPData}
+        initialCMP={cmpData}
+        onSave={handleCMPSave}
       />
     </>
   )

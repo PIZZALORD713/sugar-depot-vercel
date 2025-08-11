@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { cmpStorage } from "@/lib/cmp-storage"
 import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,6 +38,7 @@ export default function OraDashboard() {
   const [resolvedInfo, setResolvedInfo] = useState<{ from: string; address: string } | null>(null)
   const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const [autoFetched, setAutoFetched] = useState(false)
+  const [cmpDataCache, setCMPDataCache] = useState<Record<string, any>>({})
 
   // Wagmi hooks
   const { address, isConnected } = useAccount()
@@ -63,6 +64,16 @@ export default function OraDashboard() {
       setResolvedInfo(null)
     }
   }, [isConnected])
+
+  useEffect(() => {
+    if (oras.length > 0) {
+      const cache: Record<string, any> = {}
+      oras.forEach((ora) => {
+        cache[ora.oraNumber] = cmpStorage.getOrDefault(ora.oraNumber)
+      })
+      setCMPDataCache(cache)
+    }
+  }, [oras])
 
   const isENSName = (input: string) => {
     return (
@@ -165,7 +176,7 @@ export default function OraDashboard() {
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent leading-none">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 bg-clip-text text-transparent leading-none">
                 OraKit
               </h1>
               <div className="text-xs font-mono text-gray-500 tracking-wider uppercase leading-none mt-0.5">
@@ -347,7 +358,7 @@ export default function OraDashboard() {
             <OraCardCollectible
               key={`${ora.name}-${ora.oraNumber}`}
               ora={ora}
-              initialCMPData={undefined} // This would come from your backend/storage in a real app
+              initialCMPData={cmpDataCache[ora.oraNumber]}
             />
           ))}
         </div>
@@ -418,7 +429,7 @@ export default function OraDashboard() {
         <div className="mt-20 pt-16 border-t border-white/30">
           <div className="text-center">
             <div className="inline-flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-3xl border border-pink-200/50 mb-8 shadow-lg">
-              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
                 <span className="text-white font-black text-lg">O</span>
               </div>
               <span className="font-bold text-gray-800 text-lg">Powered by OraKit</span>

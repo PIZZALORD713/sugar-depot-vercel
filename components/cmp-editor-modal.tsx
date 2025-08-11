@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 
 interface CMPData {
+  customName?: string
   tagline: string
   archetype: string
   tone: {
@@ -49,6 +50,7 @@ interface CMPEditorModalProps {
   oraNumber: string
   oraImage: string
   initialCMP?: Partial<CMPData>
+  onSave?: (cmpData: CMPData) => void
 }
 
 const archetypes = [
@@ -72,8 +74,17 @@ const alignments = [
   "Lawful Evil",
 ]
 
-export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, initialCMP }: CMPEditorModalProps) {
+export function CMPEditorModal({
+  isOpen,
+  onClose,
+  oraName,
+  oraNumber,
+  oraImage,
+  initialCMP,
+  onSave,
+}: CMPEditorModalProps) {
   const [cmpData, setCMPData] = useState<CMPData>({
+    customName: initialCMP?.customName || "",
     tagline: initialCMP?.tagline || "",
     archetype: initialCMP?.archetype || "creator",
     tone: {
@@ -107,6 +118,13 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
     const cmpJSON = JSON.stringify(cmpData, null, 2)
     navigator.clipboard.writeText(cmpJSON)
     // You could add a toast notification here
+  }
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave(cmpData)
+    }
+    onClose()
   }
 
   return (
@@ -195,6 +213,16 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700">Custom Name</Label>
+                      <Input
+                        value={cmpData.customName || ""}
+                        onChange={(e) => setCMPData((prev) => ({ ...prev, customName: e.target.value }))}
+                        placeholder="Give this Ora a custom name..."
+                        className="mt-1 bg-white/70 border-white/30 focus:bg-white/90"
+                      />
+                    </div>
+
                     <div>
                       <Label className="text-sm font-semibold text-gray-700">Tagline</Label>
                       <Input
@@ -352,10 +380,7 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
             </Button>
             <Button
               className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white gap-2"
-              onClick={() => {
-                // Save CMP data
-                onClose()
-              }}
+              onClick={handleSave}
             >
               <Save className="w-4 h-4" />
               Save CMP

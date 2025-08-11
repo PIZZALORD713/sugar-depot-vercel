@@ -10,6 +10,8 @@ import { Star, ExternalLink, Edit3 } from "lucide-react"
 import Image from "next/image"
 import { useFilterStore } from "@/lib/store"
 import { OraProfileModal } from "./ora-profile-modal"
+import { cmpStorage } from "@/lib/cmp-storage"
+import type { CMPData } from "@/components/cmp-data-types"
 
 interface Ora {
   name: string
@@ -19,45 +21,10 @@ interface Ora {
   openseaUrl: string
 }
 
-interface CMPData {
-  customName: string
-  tagline: string
-  archetype: string
-  tone: {
-    playful: number
-    serious: number
-    creative: number
-    analytical: number
-    empathetic: number
-    assertive: number
-  }
-  alignment: string
-  lore: string
-  memoryLog: string[]
-}
-
 interface OraCardCollectibleProps {
   ora: Ora
   initialCMPData?: CMPData
 }
-
-// Mock CMP data - in real app this would come from your backend
-// const mockCMPData = {
-//   customName: "", // User-defined name
-//   tagline: "Digital dreamweaver with a sweet tooth for chaos",
-//   archetype: "creator",
-//   tone: {
-//     playful: 75,
-//     serious: 25,
-//     creative: 90,
-//     analytical: 40,
-//     empathetic: 60,
-//     assertive: 55,
-//   },
-//   alignment: "Chaotic Good",
-//   lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
-//   memoryLog: [],
-// }
 
 const getAlignmentColor = (alignment: string) => {
   const colorMap: Record<string, string> = {
@@ -102,25 +69,10 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
 
-  // Initialize CMP data with props or defaults
-  const [cmpData, setCMPData] = useState<CMPData>(
-    initialCMPData || {
-      customName: "",
-      tagline: "Digital dreamweaver with a sweet tooth for chaos",
-      archetype: "creator",
-      tone: {
-        playful: 75,
-        serious: 25,
-        creative: 90,
-        analytical: 40,
-        empathetic: 60,
-        assertive: 55,
-      },
-      alignment: "Chaotic Good",
-      lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
-      memoryLog: [],
-    },
-  )
+  const [cmpData, setCMPData] = useState<CMPData>(() => {
+    if (initialCMPData) return initialCMPData
+    return cmpStorage.getOrDefault(ora.oraNumber)
+  })
 
   const [customName, setCustomName] = useState(cmpData.customName)
   const [tempName, setTempName] = useState(customName)
@@ -130,10 +82,11 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   const toneGlow = getToneGlow(cmpData.tone)
   const alignmentColor = getAlignmentColor(cmpData.alignment)
 
-  // Handle CMP data updates from modal
   const handleCMPDataChange = (newCMPData: CMPData) => {
     setCMPData(newCMPData)
     setCustomName(newCMPData.customName)
+    // Save to localStorage
+    cmpStorage.save(ora.oraNumber, newCMPData)
   }
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -156,8 +109,14 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   }
 
   const handleSaveName = () => {
-    setCustomName(tempName.trim() || "")
+    const newName = tempName.trim()
+    setCustomName(newName)
     setIsEditingName(false)
+
+    // Update CMP data and persist
+    const updatedCMPData = { ...cmpData, customName: newName }
+    setCMPData(updatedCMPData)
+    cmpStorage.save(ora.oraNumber, updatedCMPData)
   }
 
   const handleCancelEdit = () => {
