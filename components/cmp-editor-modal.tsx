@@ -24,11 +24,9 @@ import {
   Shield,
   Sword,
   Wand2,
-  User,
 } from "lucide-react"
 
 interface CMPData {
-  customName: string
   tagline: string
   archetype: string
   tone: {
@@ -76,7 +74,6 @@ const alignments = [
 
 export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, initialCMP }: CMPEditorModalProps) {
   const [cmpData, setCMPData] = useState<CMPData>({
-    customName: initialCMP?.customName || "",
     tagline: initialCMP?.tagline || "",
     archetype: initialCMP?.archetype || "creator",
     tone: {
@@ -112,22 +109,20 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
     // You could add a toast notification here
   }
 
-  const displayName = cmpData.customName || `Ora #${oraNumber}`
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 backdrop-blur-xl border-0 shadow-2xl">
         <DialogHeader className="pb-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg">
-              <img src={oraImage || "/placeholder.svg"} alt={displayName} className="w-full h-full object-cover" />
+              <img src={oraImage || "/placeholder.svg"} alt={oraName} className="w-full h-full object-cover" />
             </div>
             <div>
               <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                 CMP Editor
               </DialogTitle>
               <p className="text-gray-600 font-mono text-sm">
-                {displayName} #{oraNumber}
+                {oraName} #{oraNumber}
               </p>
             </div>
             <div className="ml-auto flex gap-2">
@@ -195,29 +190,17 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
                 <Card className="bg-white/60 backdrop-blur-sm border-white/30">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <User className="w-5 h-5 text-pink-500" />
-                      Character Identity
+                      <Brain className="w-5 h-5 text-pink-500" />
+                      Identity Core
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-semibold text-gray-700">Character Name</Label>
-                      <Input
-                        value={cmpData.customName}
-                        onChange={(e) => setCMPData((prev) => ({ ...prev, customName: e.target.value }))}
-                        placeholder={`Enter custom name or leave empty for "Ora #${oraNumber}"`}
-                        className="mt-1 bg-white/70 border-white/30 focus:bg-white/90"
-                        maxLength={30}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Leave empty to use default: Ora #{oraNumber}</p>
-                    </div>
-
                     <div>
                       <Label className="text-sm font-semibold text-gray-700">Tagline</Label>
                       <Input
                         value={cmpData.tagline}
                         onChange={(e) => setCMPData((prev) => ({ ...prev, tagline: e.target.value }))}
-                        placeholder="A catchy one-liner that defines this character..."
+                        placeholder="A catchy one-liner that defines this Ora..."
                         className="mt-1 bg-white/70 border-white/30 focus:bg-white/90"
                       />
                     </div>
@@ -319,7 +302,7 @@ export function CMPEditorModal({ isOpen, onClose, oraName, oraNumber, oraImage, 
                       <Textarea
                         value={cmpData.lore}
                         onChange={(e) => setCMPData((prev) => ({ ...prev, lore: e.target.value }))}
-                        placeholder="Write the backstory, personality traits, quirks, and defining characteristics of this character..."
+                        placeholder="Write the backstory, personality traits, quirks, and defining characteristics of this Ora..."
                         className="mt-1 bg-white/70 border-white/30 focus:bg-white/90 min-h-32"
                       />
                     </div>

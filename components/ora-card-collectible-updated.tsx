@@ -15,29 +15,28 @@ import { type CMPData, type Ora, DEFAULT_CMP_DATA, getAlignmentColor, getToneGlo
 interface OraCardCollectibleProps {
   ora: Ora
   initialCMPData?: CMPData
-  onCMPDataChange?: (cmpData: CMPData) => void
 }
 
-export function OraCardCollectible({ ora, initialCMPData, onCMPDataChange }: OraCardCollectibleProps) {
+export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectibleProps) {
   const { toggleFavorite, isFavorite } = useFilterStore()
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
 
   // Initialize CMP data with props or defaults
   const [cmpData, setCMPData] = useState<CMPData>(initialCMPData || DEFAULT_CMP_DATA)
-  const [tempName, setTempName] = useState(cmpData.customName)
+  const [customName, setCustomName] = useState(cmpData.customName)
+  const [tempName, setTempName] = useState(customName)
 
   const isOraFavorited = isFavorite(ora.oraNumber)
-  // Display custom name if set, otherwise show default format
-  const displayName = cmpData.customName || `Ora #${ora.oraNumber}`
+  const displayName = customName || `#${ora.oraNumber}`
   const toneGlow = getToneGlow(cmpData.tone)
   const alignmentColor = getAlignmentColor(cmpData.alignment)
 
   // Handle CMP data updates from modal
   const handleCMPDataChange = (newCMPData: CMPData) => {
     setCMPData(newCMPData)
-    // Call the parent callback to update the global state
-    onCMPDataChange?.(newCMPData)
+    setCustomName(newCMPData.customName)
+    // In a real app, you'd also save to backend/localStorage here
     console.log("CMP data updated for Ora #" + ora.oraNumber, newCMPData)
   }
 
@@ -56,21 +55,19 @@ export function OraCardCollectible({ ora, initialCMPData, onCMPDataChange }: Ora
   const handleEditName = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setTempName(cmpData.customName)
+    setTempName(customName)
     setIsEditingName(true)
   }
 
   const handleSaveName = () => {
-    const newName = tempName.trim()
-    const updatedCMPData = { ...cmpData, customName: newName }
-    setCMPData(updatedCMPData)
-    // Call the parent callback to update the global state
-    onCMPDataChange?.(updatedCMPData)
+    const newName = tempName.trim() || ""
+    setCustomName(newName)
+    setCMPData((prev) => ({ ...prev, customName: newName }))
     setIsEditingName(false)
   }
 
   const handleCancelEdit = () => {
-    setTempName(cmpData.customName)
+    setTempName(customName)
     setIsEditingName(false)
   }
 
@@ -149,10 +146,10 @@ export function OraCardCollectible({ ora, initialCMPData, onCMPDataChange }: Ora
                     onChange={(e) => setTempName(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onBlur={handleSaveName}
-                    placeholder={`Ora #${ora.oraNumber}`}
+                    placeholder={`#${ora.oraNumber}`}
                     className="text-center font-bold text-lg border-2 border-blue-300 focus:border-blue-500 rounded-xl"
                     autoFocus
-                    maxLength={30}
+                    maxLength={20}
                   />
                 </div>
               ) : (
@@ -192,12 +189,8 @@ export function OraCardCollectible({ ora, initialCMPData, onCMPDataChange }: Ora
         onClose={() => setProfileModalOpen(false)}
         ora={ora}
         cmpData={cmpData}
-        customName={cmpData.customName}
-        onNameChange={(newName) => {
-          const updatedCMPData = { ...cmpData, customName: newName }
-          setCMPData(updatedCMPData)
-          onCMPDataChange?.(updatedCMPData)
-        }}
+        customName={customName}
+        onNameChange={setCustomName}
         onCMPDataChange={handleCMPDataChange}
       />
     </>
