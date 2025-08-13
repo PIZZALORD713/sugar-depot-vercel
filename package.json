@@ -41,6 +41,7 @@
     "@radix-ui/react-tooltip": "latest",
     "@rainbow-me/rainbowkit": "latest",
     "@tanstack/react-query": "latest",
+    "@wagmi/connectors": "5.9.3",
     "autoprefixer": "10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -84,7 +85,7 @@
     "overrides": {
       "@types/react": "^18.3.5",
       "@types/react-dom": "^18.3.0",
-      "@wagmi/connectors": "^5.10.0",
+      "@wagmi/connectors": "5.9.3",
       "react": "18.2.0",
       "react-dom": "18.2.0",
       "typescript": "^5.5.4",
