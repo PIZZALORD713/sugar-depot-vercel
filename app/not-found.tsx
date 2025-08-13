@@ -1,14 +1,42 @@
-// Server Component (no 'use client', no wagmi/rainbowkit/viem hooks)
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "404 - Page Not Found",
+  description: "The page you are looking for does not exist.",
+}
+
+// Minimal server component with no external dependencies
 export default function NotFound() {
   return (
-    <main className="mx-auto max-w-screen-md p-8">
-      <h1 className="text-2xl font-semibold">Page not found</h1>
-      <p className="mt-2 text-sm text-neutral-500">The page you're looking for doesn't exist or has moved.</p>
-      <div className="mt-6">
-        <a href="/" className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm">
-          ← Back home
-        </a>
-      </div>
-    </main>
+    <html lang="en">
+      <body>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            fontFamily: "system-ui, sans-serif",
+            padding: "2rem",
+          }}
+        >
+          <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>404 - Page Not Found</h1>
+          <p style={{ marginBottom: "2rem", color: "#666" }}>The page you are looking for does not exist.</p>
+          <a
+            href="/"
+            style={{
+              padding: "0.5rem 1rem",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            ← Back to Home
+          </a>
+        </div>
+      </body>
+    </html>
   )
 }
