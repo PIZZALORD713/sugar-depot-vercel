@@ -1,31 +1,31 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-import { Providers } from "./providers"
+import type { ReactNode } from "react"
+import { headers } from "next/headers"
+import { cookieToInitialState } from "wagmi"
+import Providers from "./providers"
+import { wagmiConfig } from "@/lib/wagmi"
 
-const inter = Inter({ subsets: ["latin"] })
+export default function RootLayout({ children }: { children: ReactNode }) {
+  let initialState
+  try {
+    initialState = cookieToInitialState(wagmiConfig, headers().get("cookie") ?? undefined)
+  } catch (error) {
+    console.warn("Failed to parse wagmi cookie state:", error)
+    initialState = undefined
+  }
 
-export const metadata: Metadata = {
-  title: "Sugartown Ora Dashboard",
-  description: "Discover and explore your Sugartown Ora NFT collection",
-  keywords: ["NFT", "Sugartown", "Ora", "Ethereum", "Dashboard"],
-    generator: 'v0.dev'
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
   return (
     <html lang="en">
       <head>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@rainbow-me/rainbowkit@2.1.0/dist/index.css" />
+        <link href="https://unpkg.com/@rainbow-me/rainbowkit@2/dist/index.css" rel="stylesheet" />
       </head>
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+      <body>
+        <Providers initialState={initialState}>{children}</Providers>
       </body>
     </html>
   )
 }
+
+export const metadata = {
+      generator: 'v0.app'
+    };

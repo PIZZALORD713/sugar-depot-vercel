@@ -10,8 +10,6 @@ import { Star, ExternalLink, Edit3 } from "lucide-react"
 import Image from "next/image"
 import { useFilterStore } from "@/lib/store"
 import { OraProfileModal } from "./ora-profile-modal"
-import { cmpStorage } from "@/lib/cmp-storage"
-import type { CMPData } from "@/components/cmp-data-types"
 
 interface Ora {
   name: string
@@ -21,10 +19,48 @@ interface Ora {
   openseaUrl: string
 }
 
+interface CMPData {
+  customName: string
+  tagline: string
+  archetype: string
+  tone: {
+    playful: number
+    serious: number
+    creative: number
+    analytical: number
+    empathetic: number
+    assertive: number
+  }
+  alignment: string
+  lore: string
+  memoryLog: string[]
+}
+
 interface OraCardCollectibleProps {
   ora: Ora
   initialCMPData?: CMPData
+  isSelected?: boolean
+  onSelectionChange?: (tokenId: string) => void
+  showSelection?: boolean
 }
+
+// Mock CMP data - in real app this would come from your backend
+// const mockCMPData = {
+//   customName: "", // User-defined name
+//   tagline: "Digital dreamweaver with a sweet tooth for chaos",
+//   archetype: "creator",
+//   tone: {
+//     playful: 75,
+//     serious: 25,
+//     creative: 90,
+//     analytical: 40,
+//     empathetic: 60,
+//     assertive: 55,
+//   },
+//   alignment: "Chaotic Good",
+//   lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
+//   memoryLog: [],
+// }
 
 const getAlignmentColor = (alignment: string) => {
   const colorMap: Record<string, string> = {
@@ -64,15 +100,36 @@ const getToneGlow = (tone: CMPData["tone"]) => {
   return glowMap[dominant[0]] || "shadow-gray-200/50"
 }
 
-export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectibleProps) {
+export function OraCardCollectible({
+  ora,
+  initialCMPData,
+  isSelected = false,
+  onSelectionChange,
+  showSelection = false,
+}: OraCardCollectibleProps) {
   const { toggleFavorite, isFavorite } = useFilterStore()
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
 
-  const [cmpData, setCMPData] = useState<CMPData>(() => {
-    if (initialCMPData) return initialCMPData
-    return cmpStorage.getOrDefault(ora.oraNumber)
-  })
+  // Initialize CMP data with props or defaults
+  const [cmpData, setCMPData] = useState<CMPData>(
+    initialCMPData || {
+      customName: "",
+      tagline: "Digital dreamweaver with a sweet tooth for chaos",
+      archetype: "creator",
+      tone: {
+        playful: 75,
+        serious: 25,
+        creative: 90,
+        analytical: 40,
+        empathetic: 60,
+        assertive: 55,
+      },
+      alignment: "Chaotic Good",
+      lore: "Born in the candy-coated streets of Sugartown, this Ora discovered their ability to weave digital dreams from crystallized sugar pixels. They spend their days crafting impossible geometries and their nights debugging reality itself.",
+      memoryLog: [],
+    },
+  )
 
   const [customName, setCustomName] = useState(cmpData.customName)
   const [tempName, setTempName] = useState(customName)
@@ -82,11 +139,10 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   const toneGlow = getToneGlow(cmpData.tone)
   const alignmentColor = getAlignmentColor(cmpData.alignment)
 
+  // Handle CMP data updates from modal
   const handleCMPDataChange = (newCMPData: CMPData) => {
     setCMPData(newCMPData)
     setCustomName(newCMPData.customName)
-    // Save to localStorage
-    cmpStorage.save(ora.oraNumber, newCMPData)
   }
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -96,7 +152,7 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   }
 
   const handleCardClick = () => {
-    if (!isEditingName) {
+    if (!isEditingName && !showSelection) {
       setProfileModalOpen(true)
     }
   }
@@ -109,14 +165,8 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
   }
 
   const handleSaveName = () => {
-    const newName = tempName.trim()
-    setCustomName(newName)
+    setCustomName(tempName.trim() || "")
     setIsEditingName(false)
-
-    // Update CMP data and persist
-    const updatedCMPData = { ...cmpData, customName: newName }
-    setCMPData(updatedCMPData)
-    cmpStorage.save(ora.oraNumber, updatedCMPData)
   }
 
   const handleCancelEdit = () => {
@@ -130,6 +180,12 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
     } else if (e.key === "Escape") {
       handleCancelEdit()
     }
+  }
+
+  const handleSelectionChange = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onSelectionChange?.(ora.oraNumber)
   }
 
   return (
@@ -154,38 +210,54 @@ export function OraCardCollectible({ ora, initialCMPData }: OraCardCollectiblePr
               className={`absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
             />
 
-            {/* Hover Actions - Top Right */}
-            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleFavoriteClick}
-                className={`p-2.5 rounded-xl transition-all duration-300 transform hover:scale-110 backdrop-blur-sm ${
-                  isOraFavorited
-                    ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg scale-105"
-                    : "bg-white/90 text-gray-600 hover:bg-white shadow-lg"
-                }`}
-              >
-                <Star className={`w-4 h-4 transition-all duration-200 ${isOraFavorited ? "fill-current" : ""}`} />
-              </Button>
+            {showSelection && (
+              <div className="absolute top-3 right-3 z-10">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={handleSelectionChange}
+                  className="w-5 h-5 rounded border-2 border-white bg-white/80 backdrop-blur checked:bg-gradient-to-r checked:from-pink-500 checked:to-purple-600 focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 cursor-pointer"
+                  aria-label={`Select ${displayName} for bulk editing`}
+                />
+              </div>
+            )}
 
-              <a
-                href={ora.openseaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="p-2.5 bg-white/90 backdrop-blur-sm rounded-xl text-gray-600 transition-all duration-300 hover:bg-white hover:scale-110 shadow-lg"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
+            {/* Hover Actions - Top Right */}
+            {!showSelection && (
+              <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleFavoriteClick}
+                  className={`p-2.5 rounded-xl transition-all duration-300 transform hover:scale-110 backdrop-blur-sm ${
+                    isOraFavorited
+                      ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg scale-105"
+                      : "bg-white/90 text-gray-600 hover:bg-white shadow-lg"
+                  }`}
+                >
+                  <Star className={`w-4 h-4 transition-all duration-200 ${isOraFavorited ? "fill-current" : ""}`} />
+                </Button>
+
+                <a
+                  href={ora.openseaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2.5 bg-white/90 backdrop-blur-sm rounded-xl text-gray-600 transition-all duration-300 hover:bg-white hover:scale-110 shadow-lg"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            )}
 
             {/* CMP Ready Badge - Top Left */}
-            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 shadow-lg text-xs px-2 py-1">
-                CMP
-              </Badge>
-            </div>
+            {!showSelection && (
+              <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 shadow-lg text-xs px-2 py-1">
+                  CMP
+                </Badge>
+              </div>
+            )}
           </div>
 
           {/* Content - Minimal and Clean */}

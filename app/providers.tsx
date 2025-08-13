@@ -1,35 +1,17 @@
 "use client"
 
-import type * as React from "react"
+import { WagmiProvider, type State } from "wagmi"
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { WagmiProvider } from "wagmi"
-import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit"
+import { useState, type ReactNode } from "react"
+import { wagmiConfig } from "@/lib/wagmi"
 
-import { config } from "@/lib/wagmi"
-
-const queryClient = new QueryClient()
-
-export function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({ children, initialState }: { children: ReactNode; initialState?: State }) {
+  const [queryClient] = useState(() => new QueryClient())
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={lightTheme({
-            accentColor: "#3b82f6",
-            accentColorForeground: "white",
-            borderRadius: "large",
-            fontStack: "system",
-            overlayBlur: "small",
-          })}
-          modalSize="compact"
-          showRecentTransactions={true}
-          appInfo={{
-            appName: "Sugartown Ora Dashboard",
-            learnMoreUrl: "https://sugartown.com",
-          }}
-        >
-          {children}
-        </RainbowKitProvider>
+        <RainbowKitProvider>{children}</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )
