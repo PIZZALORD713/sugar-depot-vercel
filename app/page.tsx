@@ -44,12 +44,26 @@ export default function OraDashboard() {
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [showBulkEditModal, setShowBulkEditModal] = useState(false)
 
-  // Wagmi hooks
   const { address, isConnected } = useAccount()
 
-  // Get filtered oras from store
   const { getFilteredOras, favorites } = useFilterStore()
   const filteredOras = getFilteredOras(oras)
+
+  useEffect(() => {
+    if (isConnected && address && !autoFetched) {
+      console.log("🔗 Wallet connected, auto-fetching Oras for:", address)
+      setWalletInput(address)
+      fetchOrasForAddress(address)
+      setAutoFetched(true)
+    }
+  }, [isConnected, address, autoFetched])
+
+  useEffect(() => {
+    if (!isConnected) {
+      setAutoFetched(false)
+      setResolvedInfo(null)
+    }
+  }, [isConnected])
 
   const toggleOrasSelection = (tokenId: string) => {
     setSelectedOras((prev) => {
@@ -107,30 +121,6 @@ export default function OraDashboard() {
       })),
     }))
 
-  // Auto-fetch when wallet connects
-  useEffect(() => {
-    if (isConnected && address && !autoFetched) {
-      console.log("🔗 Wallet connected, auto-fetching Oras for:", address)
-      setWalletInput(address)
-      fetchOrasForAddress(address)
-      setAutoFetched(true)
-    }
-  }, [isConnected, address, autoFetched])
-
-  // Reset auto-fetch flag when wallet disconnects
-  useEffect(() => {
-    if (!isConnected) {
-      setAutoFetched(false)
-      setResolvedInfo(null)
-    }
-  }, [isConnected])
-
-  const isENSName = (input: string) => {
-    return (
-      input.endsWith(".eth") || input.endsWith(".xyz") || input.endsWith(".com") || !/^0x[a-fA-F0-9]{40}$/.test(input)
-    )
-  }
-
   const fetchOrasForAddress = async (targetAddress: string) => {
     setLoading(true)
     setError("")
@@ -145,18 +135,15 @@ export default function OraDashboard() {
 
       console.log("✅ CLIENT DEBUG: Successfully fetched Oras:", data)
 
-      // Handle both old format (direct array) and new format (object with oras property)
       const orasData = Array.isArray(data) ? data : data.oras || []
       setOras(orasData)
 
-      // Set resolved ENS info if available
       if (data.resolvedFrom && data.resolvedAddress) {
         setResolvedInfo({
           from: data.resolvedFrom,
           address: data.resolvedAddress,
         })
       } else if (isConnected && address === targetAddress) {
-        // If this was auto-fetched from connected wallet, show that info
         setResolvedInfo({
           from: "Connected Wallet",
           address: targetAddress,
@@ -195,7 +182,6 @@ export default function OraDashboard() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setWalletInput(e.target.value)
-    // Clear resolved info when input changes
     if (resolvedInfo) {
       setResolvedInfo(null)
     }
@@ -208,12 +194,16 @@ export default function OraDashboard() {
     }
   }
 
+  const isENSName = (input: string) => {
+    return (
+      input.endsWith(".eth") || input.endsWith(".xyz") || input.endsWith(".com") || !/^0x[a-fA-F0-9]{40}$/.test(input)
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-      {/* Top Navigation Bar */}
       <div className="w-full bg-white/80 backdrop-blur-lg border-b border-white/30 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* Logo Section */}
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="relative">
               <div className="p-2.5 bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
@@ -235,16 +225,14 @@ export default function OraDashboard() {
             </div>
           </div>
 
-          {/* Right Side - Wallet Connect */}
           <WalletConnect />
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6">
-        {/* Hero Section - Centered */}
         <div className="text-center py-16">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
+            <h2 className="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 bg-clip-text text-transparent mb-6 leading-tight">
               Collect. Customize. Connect.
               <br />
               <span className="text-3xl">Your Oras, Your Personalities</span>
@@ -256,7 +244,6 @@ export default function OraDashboard() {
               Supports wallet addresses (0x...) and ENS names (.eth, .xyz, .com)
             </p>
 
-            {/* Search Section - Centered */}
             <Card className="shadow-xl border-0 bg-white/70 backdrop-blur-lg rounded-2xl overflow-hidden max-w-3xl mx-auto">
               <CardContent className="p-8">
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -276,7 +263,6 @@ export default function OraDashboard() {
                     />
                   </div>
                   <div className="flex gap-3">
-                    {/* Use Connected Wallet Button */}
                     {isConnected && address && address !== walletInput && (
                       <Button
                         onClick={handleUseConnectedWallet}
@@ -308,7 +294,6 @@ export default function OraDashboard() {
                   </div>
                 </div>
 
-                {/* Status Messages - Centered */}
                 {isConnected && address && (
                   <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
                     <div className="flex items-center justify-center gap-3">
@@ -362,7 +347,6 @@ export default function OraDashboard() {
           </div>
         </div>
 
-        {/* Results Header - Full width but contained */}
         {oras.length > 0 && (
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8 pb-6 border-b border-white/30">
             <div className="text-center lg:text-left">
@@ -392,7 +376,6 @@ export default function OraDashboard() {
           </div>
         )}
 
-        {/* Filter Chips */}
         <FilterChips />
 
         {filteredOras.length > 0 && (
@@ -442,16 +425,14 @@ export default function OraDashboard() {
           </div>
         )}
 
-        {/* Filter Panel */}
         <FilterPanel oras={oras} isOpen={filterPanelOpen} onClose={() => setFilterPanelOpen(false)} />
 
-        {/* Ora Grid - Character Collection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-16">
           {filteredOras.map((ora) => (
             <OraCardCollectible
               key={`${ora.name}-${ora.oraNumber}`}
               ora={ora}
-              initialCMPData={undefined} // This would come from your backend/storage in a real app
+              initialCMPData={undefined}
               isSelected={selectedOras.has(ora.oraNumber)}
               onSelectionChange={toggleOrasSelection}
               showSelection={isSelectionMode}
@@ -459,7 +440,6 @@ export default function OraDashboard() {
           ))}
         </div>
 
-        {/* Empty State - No results after filtering */}
         {!loading && oras.length > 0 && filteredOras.length === 0 && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
@@ -478,7 +458,6 @@ export default function OraDashboard() {
           </div>
         )}
 
-        {/* Empty State - No Oras found */}
         {!loading && oras.length === 0 && walletInput && !error && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
@@ -492,7 +471,6 @@ export default function OraDashboard() {
           </div>
         )}
 
-        {/* Initial State */}
         {!loading && oras.length === 0 && !walletInput && !error && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center shadow-lg">
