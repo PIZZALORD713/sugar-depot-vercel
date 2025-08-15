@@ -1,24 +1,22 @@
 import "./globals.css"
 import type { ReactNode } from "react"
-import { headers } from "next/headers"
-import { cookieToInitialState } from "wagmi"
+import { cookies } from "next/headers"
+import { cookieToInitialState, type State } from "wagmi"
 import Providers from "./providers"
 import { wagmiConfig } from "@/lib/wagmi"
 
+// Ensure this runs at request time (not during static extraction)
+export const dynamic = "force-dynamic"
+
+export const metadata = { generator: "v0.app" }
+
 export default function RootLayout({ children }: { children: ReactNode }) {
-  let initialState
+  let initialState: State | undefined
+
   try {
-    const cookieHeader = headers().get("cookie")
-    initialState = cookieToInitialState(wagmiConfig, cookieHeader ?? undefined)
-  } catch (error) {
-    // This is a common issue when cookies contain malformed JSON
-    // We silently handle it and let wagmi reinitialize with a clean state
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "Wagmi cookie parsing failed - using clean initial state:",
-        error instanceof Error ? error.message : error,
-      )
-    }
+    const cookieHeader = cookies().toString()
+    initialState = cookieHeader && cookieHeader.length > 0 ? cookieToInitialState(wagmiConfig, cookieHeader) : undefined
+  } catch {
     initialState = undefined
   }
 
@@ -33,5 +31,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
-
-export const metadata = { generator: "v0.app" }
