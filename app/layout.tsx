@@ -5,7 +5,7 @@ import { cookieToInitialState, type State } from "wagmi"
 import Providers from "./providers"
 import { wagmiConfig } from "@/lib/wagmi"
 
-// Ensure this runs at request time (not during static extraction)
+// ensure request-time evaluation (so cookies() exists), avoiding static /_not-found extraction
 export const dynamic = "force-dynamic"
 
 export const metadata = { generator: "v0.app" }
@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     const cookieHeader = cookies().toString()
     initialState = cookieHeader && cookieHeader.length > 0 ? cookieToInitialState(wagmiConfig, cookieHeader) : undefined
   } catch {
+    // tolerate malformed cookies or non-request contexts
     initialState = undefined
   }
 
