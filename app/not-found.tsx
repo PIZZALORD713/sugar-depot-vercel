@@ -1,18 +1,58 @@
-import Link from "next/link"
-
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">Page Not Found</h2>
-        <p className="text-gray-600 mb-8">The page you're looking for doesn't exist.</p>
-        <Link
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f9fafb",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <h1
+          style={{
+            fontSize: "4rem",
+            fontWeight: "bold",
+            color: "#111827",
+            marginBottom: "1rem",
+          }}
+        >
+          404
+        </h1>
+        <h2
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "600",
+            color: "#374151",
+            marginBottom: "1rem",
+          }}
+        >
+          Page Not Found
+        </h2>
+        <p
+          style={{
+            color: "#6b7280",
+            marginBottom: "2rem",
+          }}
+        >
+          The page you're looking for doesn't exist.
+        </p>
+        <a
           href="/"
-          className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          style={{
+            display: "inline-block",
+            backgroundColor: "#2563eb",
+            color: "white",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "0.5rem",
+            textDecoration: "none",
+            transition: "background-color 0.2s",
+          }}
         >
           Back to Home
-        </Link>
+        </a>
       </div>
     </div>
   )
