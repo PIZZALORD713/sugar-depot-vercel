@@ -14,6 +14,7 @@ import { OraCardCollectible } from "@/components/ora-card-collectible"
 import { WalletConnect } from "@/components/wallet-connect"
 import { useFilterStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
+import { BulkEditCMPModal } from "@/components/bulk-edit-cmp-modal"
 
 interface Ora {
   name: string
@@ -39,12 +40,72 @@ export default function OraDashboard() {
   const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const [autoFetched, setAutoFetched] = useState(false)
 
+  const [selectedOras, setSelectedOras] = useState<Set<string>>(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false)
+
   // Wagmi hooks
   const { address, isConnected } = useAccount()
 
   // Get filtered oras from store
   const { getFilteredOras, favorites } = useFilterStore()
   const filteredOras = getFilteredOras(oras)
+
+  const toggleOrasSelection = (tokenId: string) => {
+    setSelectedOras((prev) => {
+      const newSelected = new Set(prev)
+      if (newSelected.has(tokenId)) {
+        newSelected.delete(tokenId)
+      } else {
+        newSelected.add(tokenId)
+      }
+      return newSelected
+    })
+  }
+
+  const selectAllOras = () => {
+    setSelectedOras(new Set(filteredOras.map((ora) => ora.oraNumber)))
+  }
+
+  const clearSelection = () => {
+    setSelectedOras(new Set())
+  }
+
+  const handleBulkEdit = () => {
+    setIsSelectionMode(true)
+  }
+
+  const handleBulkEditCancel = () => {
+    setIsSelectionMode(false)
+    clearSelection()
+  }
+
+  const handleBulkEditProceed = () => {
+    setShowBulkEditModal(true)
+  }
+
+  const normalizeTraits = (attributes: any[]) => {
+    return attributes.reduce(
+      (acc, attr) => {
+        acc[attr.trait_type.toLowerCase().replace(/\s+/g, "_")] = attr.value
+        return acc
+      },
+      {} as Record<string, string>,
+    )
+  }
+
+  const selectedOrasData = filteredOras
+    .filter((ora) => selectedOras.has(ora.oraNumber))
+    .map((ora) => ({
+      tokenId: ora.oraNumber,
+      name: ora.name || `Ora #${ora.oraNumber}`,
+      image: ora.image || "",
+      traits: ora.traits,
+      rawTraits: Object.entries(ora.traits).map(([trait_type, value]) => ({
+        trait_type,
+        value: String(value),
+      })),
+    }))
 
   // Auto-fetch when wallet connects
   useEffect(() => {
@@ -165,7 +226,7 @@ export default function OraDashboard() {
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-600 bg-clip-text text-transparent leading-none">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 bg-clip-text text-transparent leading-none">
                 OraKit
               </h1>
               <div className="text-xs font-mono text-gray-500 tracking-wider uppercase leading-none mt-0.5">
@@ -327,16 +388,59 @@ export default function OraDashboard() {
                 <Filter className="w-5 h-5 mr-2" />
                 Filters
               </Button>
-              <Button className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Bulk Edit CMP
-              </Button>
             </div>
           </div>
         )}
 
         {/* Filter Chips */}
         <FilterChips />
+
+        {filteredOras.length > 0 && (
+          <div className="flex items-center justify-between bg-white/60 backdrop-blur rounded-xl p-4 border border-white/30 mb-6 shadow-lg">
+            <div className="flex items-center gap-4">
+              {!isSelectionMode ? (
+                <Button
+                  onClick={handleBulkEdit}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Bulk Edit CMP
+                </Button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="bg-pink-100 text-pink-800 border border-pink-200">
+                    Selection Mode Active
+                  </Badge>
+                  <span className="text-sm text-gray-600 font-medium">
+                    {selectedOras.size} of {filteredOras.length} selected
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {isSelectionMode && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={selectAllOras} className="bg-white/70 hover:bg-white/90">
+                  Select All
+                </Button>
+                <Button variant="outline" size="sm" onClick={clearSelection} className="bg-white/70 hover:bg-white/90">
+                  Clear
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkEditProceed}
+                  disabled={selectedOras.size === 0}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Export Selected ({selectedOras.size})
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleBulkEditCancel} className="hover:bg-white/70">
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filter Panel */}
         <FilterPanel oras={oras} isOpen={filterPanelOpen} onClose={() => setFilterPanelOpen(false)} />
@@ -348,6 +452,9 @@ export default function OraDashboard() {
               key={`${ora.name}-${ora.oraNumber}`}
               ora={ora}
               initialCMPData={undefined} // This would come from your backend/storage in a real app
+              isSelected={selectedOras.has(ora.oraNumber)}
+              onSelectionChange={toggleOrasSelection}
+              showSelection={isSelectionMode}
             />
           ))}
         </div>
@@ -389,35 +496,6 @@ export default function OraDashboard() {
         {!loading && oras.length === 0 && !walletInput && !error && (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center shadow-lg">
-              <Globe className="w-12 h-12 text-blue-500" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">Ready to Build Your Collection</h3>
-            <p className="text-gray-600 mb-8 text-lg max-w-2xl mx-auto">
-              {isConnected
-                ? "Your wallet is connected! Click the lightning bolt to discover your Oras, or enter any address below."
-                : "Connect your wallet above or enter a wallet address/ENS name below to discover Sugartown Oras"}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto text-sm text-gray-500">
-              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
-                <code className="text-sm font-mono text-gray-700 font-semibold">0x1234...abcd</code>
-                <p className="mt-2 text-gray-600">Wallet address</p>
-              </div>
-              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
-                <code className="text-sm font-mono text-gray-700 font-semibold">vitalik.eth</code>
-                <p className="mt-2 text-gray-600">ENS name</p>
-              </div>
-              <div className="p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg">
-                <code className="text-sm font-mono text-gray-700 font-semibold">example.xyz</code>
-                <p className="mt-2 text-gray-600">ENS name</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Powered by OraKit Section - Properly spaced */}
-        <div className="mt-20 pt-16 border-t border-white/30">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-4 px-8 py-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-3xl border border-pink-200/50 mb-8 shadow-lg">
               <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-black text-lg">O</span>
               </div>
@@ -479,7 +557,13 @@ export default function OraDashboard() {
               OraKit • Character-first • Open-source CMP toolkit for Web3 identity
             </p>
           </div>
-        </div>
+        )}
+
+        <BulkEditCMPModal
+          open={showBulkEditModal}
+          onOpenChange={setShowBulkEditModal}
+          selectedOras={selectedOrasData}
+        />
       </div>
     </div>
   )
