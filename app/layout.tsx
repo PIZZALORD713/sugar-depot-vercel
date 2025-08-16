@@ -1,23 +1,16 @@
 import "./globals.css"
 import type { ReactNode } from "react"
-import { cookies } from "next/headers"
-import { cookieToInitialState, type State } from "wagmi"
+import { headers } from "next/headers"
+import { cookieToInitialState } from "wagmi"
 import Providers from "./providers"
 import { wagmiConfig } from "@/lib/wagmi"
 
-// ensure request-time evaluation (so cookies() exists), avoiding static /_not-found extraction
-export const dynamic = "force-dynamic"
-
-export const metadata = { generator: "v0.app" }
-
 export default function RootLayout({ children }: { children: ReactNode }) {
-  let initialState: State | undefined
-
+  let initialState
   try {
-    const cookieHeader = cookies().toString()
-    initialState = cookieHeader && cookieHeader.length > 0 ? cookieToInitialState(wagmiConfig, cookieHeader) : undefined
-  } catch {
-    // tolerate malformed cookies or non-request contexts
+    initialState = cookieToInitialState(wagmiConfig, headers().get("cookie") ?? undefined)
+  } catch (error) {
+    console.warn("Failed to parse wagmi cookie state:", error)
     initialState = undefined
   }
 
@@ -32,3 +25,5 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
+
+export const metadata = { generator: "v0.app" }

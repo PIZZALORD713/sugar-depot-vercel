@@ -62,7 +62,7 @@
     "tailwindcss-animate": "^1.0.7",
     "use-sync-external-store": "1.5.0",
     "vaul": "latest",
-    "viem": "2.33.3",
+    "viem": "2.33.0",
     "wagmi": "latest",
     "zod": "3.24.1",
     "zustand": "latest"
@@ -71,7 +71,6 @@
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "pino-pretty": "11.3.0",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
@@ -79,12 +78,12 @@
   "packageManager": "pnpm@10.3.0",
   "pnpm": {
     "overrides": {
-      "@wagmi/connectors": "5.9.3",
+      "@wagmi/connectors": "^5.10.0",
       "react": "18.2.0",
       "react-dom": "18.2.0",
-      "typescript": "5.9.2",
-      "viem": "2.33.3",
-      "wagmi": "2.16.3"
+      "typescript": "^5.5.4",
+      "viem": "^2.33.0",
+      "wagmi": "^2.19.0"
     }
   }
 }
